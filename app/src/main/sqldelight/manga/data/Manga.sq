@@ -1,0 +1,75 @@
+-- src/main/sqldelight/ar/pelotude/sqldelight/manga/data/Manga.sq
+
+CREATE TABLE manga(
+  id INTEGER PRIMARY KEY NOT NULL,
+  title TEXT NOT NULL,
+  img_URL TEXT,
+  link  TEXT,
+  demographics TEXT NOT NULL,
+  volumes INTEGER,
+  pages_per_volume INTEGER,
+  chapters INTEGER,
+  pages_per_chapter INTEGER,
+  read INTEGER --boolean
+);
+
+CREATE TABLE tag (
+  id INTEGER PRIMARY KEY NOT NULL,
+  title TEXT NOT NULL
+);
+
+CREATE TABLE manga_tag_association (
+    tag_id INTEGER NOT NULL,
+    manga_id INTEGER NOT NULL,
+    FOREIGN KEY(manga_id) REFERENCES manga(id),
+    FOREIGN KEY(tag_id) REFERENCES tag(id)
+);
+
+
+CREATE INDEX tag_index ON manga_tag_association(tag_id, manga_id);
+
+
+selectAll:
+SELECT *
+FROM manga;
+
+select:
+SELECT *
+FROM manga
+WHERE id = ?;
+
+insert:
+INSERT INTO manga(title, link, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+insertTag:
+INSERT INTO tag(title) VALUES (?);
+
+insertTagAssociation:
+INSERT INTO manga_tag_association(tag_id, manga_id) VALUES(?, ?);
+
+selectTagsFromManga:
+SELECT tag.title FROM tag
+JOIN manga_tag_association AS ass ON tag.id = ass.tag_id
+JOIN manga ON ass.manga_id = manga.id
+WHERE manga.id = :manga_id;
+
+selectWithTags:
+SELECT manga.*, GROUP_CONCAT(tag.title, CHAR(10)) tags FROM tag
+JOIN manga_tag_association AS ass ON tag.id = ass.tag_id
+JOIN manga ON ass.manga_id = manga.id
+WHERE manga.id = :manga_id;
+
+-- TODO: make it possible to set null values on nullable fields:
+updateManga:
+UPDATE manga
+SET
+  title = CASE WHEN :title IS NULL THEN title ELSE :title END,
+  link = CASE WHEN :link IS NULL THEN link ELSE :link END,
+  demographics = CASE WHEN :demographics IS NULL THEN demographics ELSE :demographics END,
+  volumes = CASE WHEN :volumes IS NULL THEN volumes ELSE :volumes END,
+  pages_per_volume = CASE WHEN :pages_per_volume IS NULL THEN pages_per_volume ELSE :pages_per_volume END,
+  chapters = CASE WHEN :chapters IS NULL THEN chapters ELSE :chapters END,
+  pages_per_chapter = CASE WHEN :pages_per_chapter IS NULL THEN pages_per_chapter ELSE :pages_per_chapter END,
+  read = CASE WHEN :read IS NULL THEN read ELSE :read END
+WHERE id = :manga_id;
