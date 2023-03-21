@@ -11,10 +11,13 @@ import kotlinx.coroutines.launch
 
 class KoggableKord private constructor(val kord: Kord, config: KoggableKogConfig) {
     val inputCommands = config.inputCommands.toList()
+    val kogs = config.kogs.toList()
 
     class KoggableKogConfig {
         val inputCommands = mutableListOf<InputCommand>()
-        fun register(kog: InputCommand) = inputCommands.add(kog)
+        val kogs = mutableSetOf<Kog>()
+        fun register(cmd: InputCommand) = inputCommands.add(cmd)
+        fun register(kog: Kog) = kogs.add(kog)
     }
 
     companion object {
@@ -29,7 +32,13 @@ class KoggableKord private constructor(val kord: Kord, config: KoggableKogConfig
                 val events = kord.events.buffer(Channel.UNLIMITED)
                     .filterIsInstance<GuildChatInputCommandInteractionCreateEvent>()
 
-                inputCommands.forEach { cmd ->
+                kogs.forEach {
+                    it.setup()
+                }
+
+                val allInputCommands: List<InputCommand> = inputCommands + kogs.flatMap { it.commands }
+
+                allInputCommands.forEach { cmd ->
                     kord.createGuildChatInputCommand(
                         cmd.channel,
                         cmd.name,
@@ -41,7 +50,7 @@ class KoggableKord private constructor(val kord: Kord, config: KoggableKogConfig
                 events.onEach { event ->
                     kord.launch {
                         runCatching {
-                            inputCommands.forEach { cmd ->
+                            allInputCommands.forEach { cmd ->
                                 cmd.handler(event)
                             }
                         }.onFailure {
