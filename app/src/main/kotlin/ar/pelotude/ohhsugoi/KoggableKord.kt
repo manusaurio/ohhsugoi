@@ -9,21 +9,20 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-class KoggableKord private constructor(val kord: Kord, config: KoggableConfig) {
-    val kogs = config.kogs.toList()
+class KoggableKord private constructor(val kord: Kord, config: KoggableKogConfig) {
+    val kogs = config.inputCommands.toList()
 
-    class KoggableConfig {
-        val kogs = mutableListOf<KoggableInputCommand>()
-
-        fun register(kog: KoggableInputCommand) = kogs.add(kog)
+    class KoggableKogConfig {
+        val inputCommands = mutableListOf<InputCommand>()
+        fun register(kog: InputCommand) = inputCommands.add(kog)
     }
 
     companion object {
-        suspend operator fun invoke(token: String, setup: KoggableConfig.() -> Unit = {}): KoggableKord {
+        suspend operator fun invoke(token: String, setup: KoggableKogConfig.() -> Unit = {}): KoggableKord {
             // TODO: Unreadable mess, refactor.
             return KoggableKord(
                 Kord(token),
-                KoggableConfig().apply {
+                KoggableKogConfig().apply {
                     setup()
                 }
             ).apply {
@@ -41,8 +40,8 @@ class KoggableKord private constructor(val kord: Kord, config: KoggableConfig) {
                     events.onEach { event ->
                         kord.launch {
                             runCatching {
-                                kogs.forEach {
-                                    it.handler(event)
+                                kogs.forEach { cmd ->
+                                    cmd.handler(event)
                                 }
                             }.onFailure {
                                 kordLogger.catching(it)
@@ -55,14 +54,14 @@ class KoggableKord private constructor(val kord: Kord, config: KoggableConfig) {
     }
 }
 
-open class KoggableInputCommand private constructor(config: KogConfig) {
+open class InputCommand protected constructor(config: InputCommandConfig) {
     val command = config.command
     val handler = config.handler
     val channel = config.channelId
     val name = config.name
     val description = config.description
 
-    class KogConfig {
+    class InputCommandConfig {
         // TODO: Validate
         var command: ChatInputCreateBuilder.() -> Unit = { }
         var channelId = Snowflake(0)
@@ -80,9 +79,9 @@ open class KoggableInputCommand private constructor(config: KogConfig) {
     }
 
     companion object {
-        suspend operator fun invoke(config: suspend KogConfig.() -> Unit = {}): KoggableInputCommand {
-            return KoggableInputCommand(
-                KogConfig().apply { config() }
+        suspend operator fun invoke(config: suspend InputCommandConfig.() -> Unit = {}): InputCommand {
+            return InputCommand(
+                InputCommandConfig().apply { config() }
             )
         }
     }
