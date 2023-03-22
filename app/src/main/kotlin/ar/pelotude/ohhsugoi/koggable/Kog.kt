@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi
+package ar.pelotude.ohhsugoi.koggable
 
 
 abstract class Kog {
