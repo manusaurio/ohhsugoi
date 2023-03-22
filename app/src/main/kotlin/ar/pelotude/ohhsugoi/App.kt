@@ -1,3 +1,9 @@
 package ar.pelotude.ohhsugoi
 
-fun main() = println("Sup my world")
+import ar.pelotude.ohhsugoi.koggable.KoggableKord
+
+suspend fun main() {
+    KoggableKord(System.getenv("KORD_TOKEN")) {
+        register(MangaKog())
+    }.kord.login()
+}
