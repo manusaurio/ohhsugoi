@@ -9,18 +9,24 @@ import dev.kord.rest.builder.interaction.int
 import dev.kord.rest.builder.interaction.string
 import manga.data.Manga
 
+
+// TODO: Move to database
 enum class Demographic(val alias: String) {
     SEINEN("seinen"),
     SHOUNEN("shounen"),
     SHOUJO("shoujo"),
+    JOSUEI("jousei"),
+    KOMODO("komodo"),
+    HOBBY("hobby"),
+    OTHER("otros")
 }
 
 class MangaKog : Kog() {
     // TODO: Refactor & add database
     override suspend fun setup() {
         inputCommand {
-            name = "bailar"
-            description = "Hace que bailes"
+            name = "sugerir"
+            description = "Agrega un manga con los datos proporcionados"
             channelId = Snowflake(System.getenv("KORD_WEEB_CHANNEL"))
 
             command {
