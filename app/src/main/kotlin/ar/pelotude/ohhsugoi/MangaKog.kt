@@ -21,7 +21,7 @@ class MangaKog : Kog() {
         inputCommand {
             name = "bailar"
             description = "Hace que bailes"
-            channelId = Snowflake(832779672848433242)
+            channelId = Snowflake(System.getenv("KORD_WEEB_CHANNEL"))
 
             command {
                 string("manga_title", "El título del manga") { required = true }
