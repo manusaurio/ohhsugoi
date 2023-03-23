@@ -73,3 +73,6 @@ SET
   pages_per_chapter = CASE WHEN :pages_per_chapter IS NULL THEN pages_per_chapter ELSE :pages_per_chapter END,
   read = CASE WHEN :read IS NULL THEN read ELSE :read END
 WHERE id = :manga_id;
+
+getLastInsertRowId:
+SELECT last_insert_rowid();
