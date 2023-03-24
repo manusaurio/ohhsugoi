@@ -10,12 +10,12 @@ CREATE TABLE manga(
   pages_per_volume INTEGER,
   chapters INTEGER,
   pages_per_chapter INTEGER,
-  read INTEGER --boolean
+  read INTEGER NOT NULL --boolean
 );
 
 CREATE TABLE tag (
   id INTEGER PRIMARY KEY NOT NULL,
-  title TEXT NOT NULL
+  title TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE manga_tag_association (
@@ -38,9 +38,11 @@ SELECT *
 FROM manga
 WHERE id = ?;
 
-insert:
-INSERT INTO manga(title, link, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+insert {
+INSERT INTO manga(title, link, img_URL, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+SELECT last_insert_rowid();
+}
 
 insertTag:
 INSERT INTO tag(title) VALUES (?);
@@ -54,7 +56,7 @@ JOIN manga_tag_association AS ass ON tag.id = ass.tag_id
 JOIN manga ON ass.manga_id = manga.id
 WHERE manga.id = :manga_id;
 
-selectWithTags:
+selectMangaWithTags:
 SELECT manga.*, GROUP_CONCAT(tag.title, CHAR(10)) tags FROM tag
 JOIN manga_tag_association AS ass ON tag.id = ass.tag_id
 JOIN manga ON ass.manga_id = manga.id
@@ -76,3 +78,11 @@ WHERE id = :manga_id;
 
 getLastInsertRowId:
 SELECT last_insert_rowid();
+
+selectTagId:
+SELECT tag.id FROM tag WHERE tag.title = :tagName;
+
+updateMangaImgURL:
+UPDATE manga
+SET img_URL = :imgURL
+WHERE manga.id = :mangaId;
