@@ -7,7 +7,7 @@ import dev.kord.core.entity.Attachment
 import dev.kord.rest.builder.interaction.attachment
 import dev.kord.rest.builder.interaction.int
 import dev.kord.rest.builder.interaction.string
-import manga.data.Manga
+import java.net.URL
 
 
 // TODO: Move to database
@@ -18,11 +18,15 @@ enum class Demographic(val alias: String) {
     JOSUEI("jousei"),
     KOMODO("komodo"),
     HOBBY("hobby"),
-    OTHER("otros")
+    OTHER("otros"),
 }
 
-class MangaKog : Kog() {
-    // TODO: Refactor & add database
+class MangaKog(val db: ar.pelotude.ohhsugoi.db.MangaDatabase) : Kog() {
+    // TODO: Refactor
+    private fun java.net.URL.seemsSafe() =
+        protocol == "https" && host in listOf("media.discordapp.net", "cdn.discordapp.com")
+
+
     override suspend fun setup() {
         inputCommand {
             name = "sugerir"
@@ -60,6 +64,7 @@ class MangaKog : Kog() {
                     .split(',')
                     .filter(String::isNotBlank)
                     .map(String::trim)
+                    .toSet()
 
                 val chapters = c.integers["chapters"]!!
                 val volumes = c.integers["volumes"]
@@ -69,13 +74,11 @@ class MangaKog : Kog() {
                     ppv * volumes / chapters
                 else -1
 
-
                 val (image: Attachment?, validImage: Boolean) = with(c.attachments["image"]) {
-                    if (this == null || isImage && size < 8000000) {
+                    if (this == null || isImage && size < 8000000 && URL(url).seemsSafe()) {
                         this to true
                     } else this to false
                 }
-
 
                 val isValid = c.integers.values.all { it > 0 }
                         && c.strings.values.all(String::isNotBlank)
@@ -84,45 +87,36 @@ class MangaKog : Kog() {
                         && ppc > 0
                         && validImage
 
-                // TODO: Download and register in DB
-                if (validImage) { /*
-                    image?.let { down ->
-                        Files.copy(URL(down.url).openStream(), Paths.get(""))
 
-                        URL(down.url).openStream().use {
-                            Files.copy(it, Paths.get("some path"))
+                // set a cooldown for the user,
+                // check if similar titles exist,
+                // then add anyway but inform the user
+
+
+                response.respond {
+                    if (isValid) {
+                        val operation = db.addManga(
+                            title = title,
+                            imgURLSource = image?.let { URL(it.url) },
+                            link = link,
+                            demographic = demographic,
+                            volumes = volumes,
+                            pagesPerVolume = ppv,
+                            chapters = chapters,
+                            pagesPerChapter = ppc,
+                            tags = tags,
+                            read = false
+                        )
+
+                        content = if (operation != null) {
+                            "Agregado exitosamente."
+                        } else {
+                            "Error al agregar."
                         }
-                    }
-                    */
-                }
-
-                if (isValid) {
-                    // val sent = push(manga) // INSERT into DB
-                    val sent = true
-
-                    val manga = Manga(
-                        1, // unnecesary
-                        title,
-                        "...", // internal URL as set in the DB
-                        link,
-                        Demographic.SEINEN.alias,
-                        volumes,
-                        ppv,
-                        chapters,
-                        ppc,
-                        0
-                    )
-
-                    response.respond {
-                        content = if (sent)
-                            "Agregado ${manga.title} exitosamente."
-                        else
-                            "Error agregando el manga."
-                    }
-                } else {
-                    response.respond {
+                    } else {
                         content = "Error en los argumentos."
                     }
+
                 }
             }
         }
