@@ -36,7 +36,13 @@ class KoggableKord private constructor(val kord: Kord, config: KoggableKogConfig
 
                 val allInputCommands: List<InputCommand> = inputCommands + kogs.flatMap { it.commands }
 
-                allInputCommands.forEach { cmd ->
+                val commandsMap: Map<String, InputCommand> = allInputCommands
+                    .groupBy { it.name }.mapValuesTo(HashMap(16)) {
+                        if (it.value.count() > 1) kordLogger.error("Found multiple commands named ${it.key}, discarding duplicates.")
+                        it.value.first()
+                    }
+
+                commandsMap.forEach { (_, cmd) ->
                     kord.createGuildChatInputCommand(
                         cmd.channel,
                         cmd.name,
@@ -45,12 +51,18 @@ class KoggableKord private constructor(val kord: Kord, config: KoggableKogConfig
                     )
                 }
 
+                // TODO: Instead of relying on `Strings`, do so on `Snowflake`s
+                //  They can be taken from the command creation functions (`ApplicationCommandData.id`)
+
                 events.onEach { event ->
                     kord.launch {
                         runCatching {
-                            allInputCommands.forEach { cmd ->
-                                cmd.handler(event)
+                            val invokedName = event.interaction.invokedCommandName
+
+                            commandsMap[invokedName]?.let {
+                                it.handler(event)
                             }
+
                         }.onFailure {
                             kordLogger.catching(it)
                         }
