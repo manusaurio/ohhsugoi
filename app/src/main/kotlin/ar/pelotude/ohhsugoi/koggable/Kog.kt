@@ -1,6 +1,8 @@
 package ar.pelotude.ohhsugoi.koggable
 
-abstract class Kog {
+import dev.kord.common.entity.Snowflake
+
+abstract class Kog(val defaultServer: Snowflake? = null) {
     protected open val commandPool: MutableList<InputCommand> = mutableListOf()
 
     val commands: List<InputCommand>
@@ -13,6 +15,9 @@ abstract class Kog {
     protected fun inputCommand(
         config: InputCommand.InputCommandConfig.() -> Unit = {}
     ): InputCommand {
-        return InputCommand(config).apply(commandPool::add)
+        return InputCommand {
+            config()
+            serverId =  serverId ?: defaultServer!!
+        }.apply(commandPool::add)
     }
 }

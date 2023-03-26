@@ -8,14 +8,13 @@ import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 open class InputCommand protected constructor(config: InputCommandConfig) {
     val command = config.command
     val handler = config.handler
-    val channel = config.channelId
+    val server = config.serverId
     val name = config.name
     val description = config.description
 
     class InputCommandConfig {
-        // TODO: Validate
         var command: ChatInputCreateBuilder.() -> Unit = { }
-        var channelId = Snowflake(0)
+        var serverId: Snowflake? = null
         var description: String = ""
         var name: String = ""
         var handler: suspend GuildChatInputCommandInteractionCreateEvent.() -> Unit = {}

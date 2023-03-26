@@ -44,7 +44,7 @@ class KoggableKord private constructor(val kord: Kord, config: KoggableKogConfig
 
                 commandsMap.forEach { (_, cmd) ->
                     kord.createGuildChatInputCommand(
-                        cmd.channel,
+                        cmd.server!!,
                         cmd.name,
                         cmd.description,
                         cmd.command

@@ -20,7 +20,10 @@ enum class Demographic(val alias: String) {
     OTHER("otros"),
 }
 
-class MangaKog(val db: ar.pelotude.ohhsugoi.db.MangaDatabase) : Kog() {
+class MangaKog(
+    val db: ar.pelotude.ohhsugoi.db.MangaDatabase,
+    defaultServer: Snowflake = Snowflake(System.getenv("KORD_WEEB_SERVER")!!)
+) : Kog(defaultServer) {
     // TODO: Refactor
     private fun java.net.URL.seemsSafe() =
         protocol == "https" && host in listOf("media.discordapp.net", "cdn.discordapp.com")
@@ -30,7 +33,6 @@ class MangaKog(val db: ar.pelotude.ohhsugoi.db.MangaDatabase) : Kog() {
         inputCommand {
             name = "sugerir"
             description = "Agrega un manga con los datos proporcionados"
-            channelId = Snowflake(System.getenv("KORD_WEEB_SERVER"))
 
             command {
                 string("manga_title", "El título del manga") { required = true }
