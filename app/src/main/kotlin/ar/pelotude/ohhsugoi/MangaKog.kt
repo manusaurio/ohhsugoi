@@ -31,7 +31,7 @@ class MangaKog(val db: ar.pelotude.ohhsugoi.db.MangaDatabase) : Kog() {
         inputCommand {
             name = "sugerir"
             description = "Agrega un manga con los datos proporcionados"
-            channelId = Snowflake(System.getenv("KORD_WEEB_CHANNEL"))
+            channelId = Snowflake(System.getenv("KORD_WEEB_SERVER"))
 
             command {
                 string("manga_title", "El título del manga") { required = true }
