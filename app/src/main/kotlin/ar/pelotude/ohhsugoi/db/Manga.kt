@@ -17,6 +17,7 @@ import kotlin.io.path.div
 import kotlin.io.path.extension
 
 typealias MangaWithTags = SelectMangaWithTags
+
 interface MangaDatabase {
     suspend fun getManga(id: Long): Manga?
 
@@ -107,7 +108,6 @@ class MangaDatabaseSQLite(
 
                 queries.insertTagAssociation(tagId, mangaId)
             }
-
 
             // TODO: compress/resize, remove exif metadata
             if (imgURLSource != null) {

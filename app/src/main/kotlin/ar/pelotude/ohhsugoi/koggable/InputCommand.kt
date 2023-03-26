@@ -4,6 +4,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.event.interaction.GuildChatInputCommandInteractionCreateEvent
 import dev.kord.rest.builder.interaction.ChatInputCreateBuilder
 
+
 open class InputCommand protected constructor(config: InputCommandConfig) {
     val command = config.command
     val handler = config.handler
@@ -29,7 +30,7 @@ open class InputCommand protected constructor(config: InputCommandConfig) {
     }
 
     companion object {
-        suspend operator fun invoke(config: suspend InputCommandConfig.() -> Unit = {}): InputCommand {
+        operator fun invoke(config: InputCommandConfig.() -> Unit = {}): InputCommand {
             return InputCommand(
                 InputCommandConfig().apply { config() }
             )

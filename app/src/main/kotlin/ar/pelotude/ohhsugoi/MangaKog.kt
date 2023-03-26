@@ -9,7 +9,6 @@ import dev.kord.rest.builder.interaction.int
 import dev.kord.rest.builder.interaction.string
 import java.net.URL
 
-
 // TODO: Move to database
 enum class Demographic(val alias: String) {
     SEINEN("seinen"),

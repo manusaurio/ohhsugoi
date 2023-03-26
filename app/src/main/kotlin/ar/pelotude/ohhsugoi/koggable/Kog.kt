@@ -1,6 +1,5 @@
 package ar.pelotude.ohhsugoi.koggable
 
-
 abstract class Kog {
     protected open val commandPool: MutableList<InputCommand> = mutableListOf()
 
@@ -11,8 +10,8 @@ abstract class Kog {
 
     }
 
-    protected suspend inline fun inputCommand(
-        noinline config: suspend InputCommand.InputCommandConfig.() -> Unit = {}
+    protected fun inputCommand(
+        config: InputCommand.InputCommandConfig.() -> Unit = {}
     ): InputCommand {
         return InputCommand(config).apply(commandPool::add)
     }
