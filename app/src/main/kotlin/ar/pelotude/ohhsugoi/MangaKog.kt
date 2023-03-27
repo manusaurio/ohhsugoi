@@ -7,6 +7,7 @@ import dev.kord.core.entity.Attachment
 import dev.kord.rest.builder.interaction.attachment
 import dev.kord.rest.builder.interaction.int
 import dev.kord.rest.builder.interaction.string
+import kotlinx.coroutines.async
 import java.net.URL
 
 // TODO: Move to database
@@ -54,7 +55,9 @@ class MangaKog(
             }
 
             handler {
-                val response = interaction.deferPublicResponse()
+                val deferredResp = interaction.kord.async {
+                    interaction.deferPublicResponse()
+                }
 
                 val c = interaction.command
 
@@ -88,11 +91,12 @@ class MangaKog(
                         && ppc > 0
                         && validImage
 
+                // TODO: set a cooldown for the user,
+                //  check if similar titles exist,
+                //  then add anyway but inform the user
+                //  labels: enhancement
 
-                // set a cooldown for the user,
-                // check if similar titles exist,
-                // then add anyway but inform the user
-
+                val response = deferredResp.await()
 
                 response.respond {
                     if (isValid) {
