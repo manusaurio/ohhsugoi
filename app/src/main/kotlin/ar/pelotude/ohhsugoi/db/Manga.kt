@@ -5,7 +5,11 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.Database
 import ar.pelotude.ohhsugoi.Demographic
 import ar.pelotude.ohhsugoi.uuidString
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import manga.data.Manga
+import manga.data.SearchManga
 import manga.data.SelectMangaWithTags
 import java.io.IOException
 import java.net.URL
@@ -25,8 +29,11 @@ interface MangaDatabase {
 
     suspend fun getMangas(title: String)
 
+    suspend fun searchManga(text: String): List<SearchManga>
+
     suspend fun addManga(
         title: String,
+        description: String,
         imgURLSource: URL? = null,
         link: String? = null,
         demographic: Demographic? = null,
@@ -39,9 +46,9 @@ interface MangaDatabase {
     ): Long?
 }
 
-// TODO: Inject IO dispatcher
 class MangaDatabaseSQLite(
     private val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY),
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : MangaDatabase {
     private val database: Database = Database.Schema.run {
         create(driver)
@@ -70,8 +77,15 @@ class MangaDatabaseSQLite(
         TODO("...")
     }
 
+    override suspend fun searchManga(text: String): List<SearchManga> {
+        return withContext(dispatcher) {
+            return@withContext queries.searchManga(text).executeAsList()
+        }
+    }
+
     override suspend fun addManga(
         title: String,
+        description: String,
         imgURLSource: URL?,
         link: String?,
         demographic: Demographic?,
@@ -85,6 +99,7 @@ class MangaDatabaseSQLite(
         database.transactionWithResult {
             val mangaId = queries.insert(
                 title = title,
+                description = description,
                 link = link,
                 img_URL = null,
                 demographics = demographic?.alias ?: Demographic.OTHER.alias,
@@ -102,7 +117,6 @@ class MangaDatabaseSQLite(
                     queries.getLastInsertRowId().executeAsOne()
                 } catch (e: SQLException) { // UNIQUE, use stored instead
                     // TODO ^ change to sqlite exception, check if the reason is `UNIQUE`
-                    System.err.println("${e.cause} with error ${e.errorCode}!")
                     queries.selectTagId(tag).executeAsOne()
                 }
 
@@ -117,8 +131,6 @@ class MangaDatabaseSQLite(
                 val mangaFileName = "$mangaId-${uuidString()}.${extension}"
 
                 val destiny = Path(System.getenv("MANGA_IMAGES_PATH")) / mangaFileName
-
-
 
                 imgURLSource.openStream().buffered().use {
                     Files.copy(it, destiny)

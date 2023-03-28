@@ -1,8 +1,7 @@
--- src/main/sqldelight/ar/pelotude/sqldelight/manga/data/Manga.sq
-
 CREATE TABLE manga(
   id INTEGER PRIMARY KEY NOT NULL,
   title TEXT NOT NULL,
+  description TEXT NOT NULL,
   img_URL TEXT,
   link  TEXT,
   demographics TEXT NOT NULL,
@@ -25,9 +24,16 @@ CREATE TABLE manga_tag_association (
     FOREIGN KEY(tag_id) REFERENCES tag(id)
 );
 
-
 CREATE INDEX tag_index ON manga_tag_association(tag_id, manga_id);
 
+CREATE VIRTUAL TABLE mangafts USING fts4(manga_id INTEGER, title TEXT);
+
+CREATE TRIGGER insert_into_mangafts
+AFTER INSERT ON manga
+BEGIN
+  INSERT INTO mangafts (manga_id, title)
+  VALUES (new.id, new.title);
+END;
 
 selectAll:
 SELECT *
@@ -39,8 +45,8 @@ FROM manga
 WHERE id = ?;
 
 insert {
-INSERT INTO manga(title, link, img_URL, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO manga(title, description, link, img_URL, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 SELECT last_insert_rowid();
 }
 
@@ -86,3 +92,10 @@ updateMangaImgURL:
 UPDATE manga
 SET img_URL = :imgURL
 WHERE manga.id = :mangaId;
+
+searchManga:
+SELECT manga.*, GROUP_CONCAT(tag.title, CHAR(10)) AS tags FROM manga
+LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
+LEFT JOIN tag ON tag.id = ass.tag_id
+JOIN mangafts ON mangafts.manga_id = manga.id
+WHERE mangafts MATCH ? GROUP BY manga.id;
