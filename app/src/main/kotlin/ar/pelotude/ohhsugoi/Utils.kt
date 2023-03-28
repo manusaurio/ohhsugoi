@@ -1,7 +1,7 @@
 package ar.pelotude.ohhsugoi
 
 import java.net.URL
-import java.util.UUID
+import java.util.*
 
 /** This isn't ideal but I'm not gonna add another dependency or write something fancy
  * for something meant to be used among trustworthy people */
@@ -21,3 +21,5 @@ fun randomString(length: Int): String {
 }
 
 fun uuidString() = UUID.randomUUID().toString()
+
+fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
