@@ -3,7 +3,7 @@ CREATE TABLE manga(
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   img_URL TEXT,
-  link  TEXT,
+  link TEXT,
   demographics TEXT NOT NULL,
   volumes INTEGER,
   pages_per_volume INTEGER,
@@ -56,23 +56,23 @@ INSERT INTO tag(title) VALUES (?);
 insertTagAssociation:
 INSERT INTO manga_tag_association(tag_id, manga_id) VALUES(?, ?);
 
+removeTagAssociation:
+DELETE FROM manga_tag_association
+WHERE manga_id = :manga_id AND tag_id IN
+  (SELECT id FROM tag WHERE title IN :tag_name);
+
 selectTagsFromManga:
 SELECT tag.title FROM tag
 JOIN manga_tag_association AS ass ON tag.id = ass.tag_id
 JOIN manga ON ass.manga_id = manga.id
 WHERE manga.id = :manga_id;
 
-selectMangaWithTags:
-SELECT manga.*, GROUP_CONCAT(tag.title, CHAR(10)) tags FROM tag
-JOIN manga_tag_association AS ass ON tag.id = ass.tag_id
-JOIN manga ON ass.manga_id = manga.id
-WHERE manga.id = :manga_id;
-
--- TODO: make it possible to set null values on nullable fields:
-updateManga:
+updateNonNullablesManga:
 UPDATE manga
 SET
   title = CASE WHEN :title IS NULL THEN title ELSE :title END,
+  description = CASE WHEN :description IS NULL THEN description ELSE :description END,
+  img_URL = CASE WHEN :img_URL IS NULL THEN img_URL ELSE :img_URL END,
   link = CASE WHEN :link IS NULL THEN link ELSE :link END,
   demographics = CASE WHEN :demographics IS NULL THEN demographics ELSE :demographics END,
   volumes = CASE WHEN :volumes IS NULL THEN volumes ELSE :volumes END,
@@ -81,6 +81,24 @@ SET
   pages_per_chapter = CASE WHEN :pages_per_chapter IS NULL THEN pages_per_chapter ELSE :pages_per_chapter END,
   read = CASE WHEN :read IS NULL THEN read ELSE :read END
 WHERE id = :manga_id;
+
+unsetImgURL:
+UPDATE manga SET img_URL = NULL WHERE id = :manga_id;
+
+unsetLink:
+UPDATE manga SET link = NULL WHERE id = :manga_id;
+
+unsetVolumes:
+UPDATE manga SET volumes = NULL WHERE id = :manga_id;
+
+unsetPagesPerVolume:
+UPDATE manga SET pages_per_volume = NULL WHERE id = :manga_id;
+
+unsetChapters:
+UPDATE manga SET chapters = NULL WHERE id = :manga_id;
+
+unsetPagesPerChapter:
+UPDATE manga SET pages_per_chapter = NULL WHERE id = :manga_id;
 
 getLastInsertRowId:
 SELECT last_insert_rowid();
@@ -93,9 +111,15 @@ UPDATE manga
 SET img_URL = :imgURL
 WHERE manga.id = :mangaId;
 
-searchManga:
-SELECT manga.*, GROUP_CONCAT(tag.title, CHAR(10)) AS tags FROM manga
+searchMangaWithTags:
+SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
 LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
 LEFT JOIN tag ON tag.id = ass.tag_id
 JOIN mangafts ON mangafts.manga_id = manga.id
-WHERE mangafts MATCH ? GROUP BY manga.id;
+WHERE mangafts MATCH ? GROUP BY manga.id LIMIT :limit;
+
+selectMangaWithTags:
+SELECT manga.*, GROUP_CONCAT(tag.title) tags FROM manga
+LEFT JOIN manga_tag_association AS ass ON ass.manga_id = manga.id
+LEFT JOIN tag ON tag.id = ass.tag_id
+WHERE manga.id = :manga_id;
