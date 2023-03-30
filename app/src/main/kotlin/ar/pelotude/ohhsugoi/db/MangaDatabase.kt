@@ -7,7 +7,6 @@ import ar.pelotude.Database
 import ar.pelotude.ohhsugoi.uuidString
 import kotlinx.coroutines.*
 import manga.data.SearchMangaWithTags
-import manga.data.SelectMangaWithTags
 import java.io.IOException
 import java.net.URL
 import java.nio.file.Files
@@ -17,6 +16,7 @@ import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.extension
+import dev.kord.core.kordLogger
 
 class MangaDatabaseSQLite(
     private val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY),
@@ -62,7 +62,6 @@ class MangaDatabaseSQLite(
      * or null if the file couldn't be downloaded,
      */
     private fun URL.downloadImage(mangaId: Long): String? {
-        // TODO: log
         // TODO: compress/resize, remove exif metadata
 
         val extension = Path.of(path).extension
@@ -72,8 +71,10 @@ class MangaDatabaseSQLite(
         this.openStream().buffered().use { stream ->
             try {
                 Files.copy(stream, destiny)
+                kordLogger.info { "Added image succesfully: $mangaFileName " }
                 return mangaFileName
             } catch (e: IOException) {
+                kordLogger.trace(e) { "Error trying to download from $this" }
                 return null
             }
         }
@@ -115,7 +116,7 @@ class MangaDatabaseSQLite(
         tags: Set<String>,
         read: Boolean,
     ): Long? = try {
-        database.transactionWithResult {
+        val insertionId = database.transactionWithResult {
             val mangaId = queries.insert(
                 title = title,
                 description = description,
@@ -128,7 +129,6 @@ class MangaDatabaseSQLite(
                 pages_per_chapter = pagesPerChapter,
                 read = read.sqliteBool()
             ).executeAsOne()
-            // TODO: log
 
             addTags(mangaId, tags)
 
@@ -137,11 +137,14 @@ class MangaDatabaseSQLite(
                 queries.updateMangaImgURL(imgFileName, mangaId)
             }
 
-            return@transactionWithResult mangaId
+            mangaId
         }
+
+        kordLogger.info { "Inserted $title at $insertionId." }
+
+        insertionId
     } catch (e: IOException) {
-        // TODO: log
-        //  is it worth it to catch IOExceptions?
+        kordLogger.trace(e) { "Error adding $title." }
         null
     }
 
