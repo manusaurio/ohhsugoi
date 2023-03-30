@@ -1,6 +1,7 @@
 package ar.pelotude.ohhsugoi
 
 import ar.pelotude.ohhsugoi.db.Demographic
+import ar.pelotude.ohhsugoi.db.DownloadException
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import ar.pelotude.ohhsugoi.koggable.Kog
 import dev.kord.common.entity.Snowflake
@@ -165,24 +166,23 @@ class MangaKog(
 
                 response.respond {
                     if (isValid) {
-                        val operation = db.addManga(
-                            title = title,
-                            description = description,
-                            imgURLSource = image?.let { URL(it.url) },
-                            link = link,
-                            demographic = demographic,
-                            volumes = volumes,
-                            pagesPerVolume = ppv,
-                            chapters = chapters,
-                            pagesPerChapter = ppc,
-                            tags = tags,
-                            read = false
-                        )
-
-                        content = if (operation != null) {
-                            "Agregado exitosamente."
-                        } else {
-                            "Error al agregar."
+                        try {
+                            db.addManga(
+                                title = title,
+                                description = description,
+                                imgURLSource = image?.let { URL(it.url) },
+                                link = link,
+                                demographic = demographic,
+                                volumes = volumes,
+                                pagesPerVolume = ppv,
+                                chapters = chapters,
+                                pagesPerChapter = ppc,
+                                tags = tags,
+                                read = false
+                            )
+                            content = "Agregado exitosamente."
+                        } catch (e: DownloadException) {
+                            content = "Error al agregar."
                         }
                     } else {
                         // TODO: Point out the reason(s) the arguments validation didn't pass after trying to submit an entry.

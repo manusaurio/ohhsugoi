@@ -1,5 +1,6 @@
 package ar.pelotude.ohhsugoi.db
 
+import java.io.IOException
 import java.net.URL
 
 enum class Demographic(val alias: String) {
@@ -81,6 +82,13 @@ interface MangaDatabase {
 
     suspend fun searchManga(text: String, limit: Long = 1): Collection<MangaWithTags>
 
+    /**
+     * Adds a manga entry to the database. If an exception is thrown during
+     * the data submission, the request is cancelled.
+     *
+     * @return A [Long] with the unique id of the added entry
+     * @throws DownloadException if an I/O error occurs when downloading the image
+     */
     suspend fun addManga(
         title: String,
         description: String,
@@ -93,8 +101,15 @@ interface MangaDatabase {
         pagesPerChapter: Long? = null,
         tags: Set<String> = setOf(),
         read: Boolean = false,
-    ): Long?
+    ): Long
 
+    /**
+     * Updates a manga by applying changes onto its current data,
+     * taken from [MangaChanges]
+     * @param[changes] the changes to apply
+     * @param[flags] flags of data to be unset
+     * @throws [DownloadException] if a [MangaChanges.imgURLSource]
+     * was submitted and couldn't be downloaded */
     suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags)
 }
 
@@ -106,3 +121,5 @@ enum class UpdateFlags {
     UNSET_CHAPTERS,
     UNSET_PPC,
 }
+
+class DownloadException(message: String, cause: Throwable) : IOException(message, cause)

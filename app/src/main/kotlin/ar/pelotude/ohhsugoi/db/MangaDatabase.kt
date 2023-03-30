@@ -58,10 +58,12 @@ class MangaDatabaseSQLite(
      * it's an image file, then randomizes a name for it based on [mangaId]
      * with the prefix "$[mangaId]-"
      *
+     * @param[mangaId] the id of the manga that the image represents
      * @return A [String] containing the full path to the downloaded image,
      * or null if the file couldn't be downloaded,
+     * @throws DownloadException if an I/O error occurs when downloading the image
      */
-    private fun URL.downloadImage(mangaId: Long): String? {
+    private fun URL.downloadImage(mangaId: Long): String {
         // TODO: compress/resize, remove exif metadata
 
         val extension = Path.of(path).extension
@@ -71,12 +73,11 @@ class MangaDatabaseSQLite(
         this.openStream().buffered().use { stream ->
             try {
                 Files.copy(stream, destiny)
-                kordLogger.info { "Added image succesfully: $mangaFileName " }
-                return mangaFileName
-            } catch (e: IOException) {
-                kordLogger.trace(e) { "Error trying to download from $this" }
-                return null
+            } catch(e: IOException) {
+                throw DownloadException("The image could not be downloaded", e)
             }
+            kordLogger.info { "Added image: $mangaFileName " }
+            return mangaFileName
         }
     }
 
@@ -115,7 +116,7 @@ class MangaDatabaseSQLite(
         pagesPerChapter: Long?,
         tags: Set<String>,
         read: Boolean,
-    ): Long? = try {
+    ): Long {
         val insertionId = database.transactionWithResult {
             val mangaId = queries.insert(
                 title = title,
@@ -142,10 +143,7 @@ class MangaDatabaseSQLite(
 
         kordLogger.info { "Inserted $title at $insertionId." }
 
-        insertionId
-    } catch (e: IOException) {
-        kordLogger.trace(e) { "Error adding $title." }
-        null
+        return insertionId
     }
 
     override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {
@@ -169,8 +167,8 @@ class MangaDatabaseSQLite(
                 }
 
                 val imgFilePath = imgURLSource?.let {
+                    // throws DownloadException
                     val fileName = it.downloadImage(mangaId)
-                    if (fileName == null) { /* Log issue with img */ }
                     fileName
                 }
 
