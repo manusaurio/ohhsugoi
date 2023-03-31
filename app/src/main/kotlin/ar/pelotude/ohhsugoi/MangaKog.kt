@@ -61,17 +61,17 @@ class MangaKog(
 
                             field {
                                 name = "Tomos"
-                                value = "${manga.volumes}"
+                                value = manga.volumes?.toString() ?: "?"
                                 inline = true
                             }
                             field {
                                 name = "Páginas por tomo"
-                                value = manga.pagesPerVolume?.let { "~$it" } ?: ""
+                                value = manga.pagesPerVolume?.let { "~$it" } ?: "?"
                                 inline = true
                             }
                             field {
                                 name = "Páginas por capítulo"
-                                value = "~${manga.pagesPerChapter}"
+                                value = manga.pagesPerChapter?.let { "~$it" } ?: "?"
                                 inline = true
                             }
 
