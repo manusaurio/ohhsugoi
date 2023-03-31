@@ -5,6 +5,7 @@ import ar.pelotude.ohhsugoi.db.DownloadException
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import ar.pelotude.ohhsugoi.koggable.Kog
 import dev.kord.common.entity.Snowflake
+import dev.kord.common.Locale as Langs
 import dev.kord.core.behavior.interaction.respondPublic
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.Attachment
@@ -27,15 +28,22 @@ class MangaKog(
     override suspend fun setup() {
         inputCommand() {
             name = "buscar"
-            description = "Busca un manga por título."
+            description = "Busca un manga por título"
 
             command {
-                string("text", "Texto a buscar en los títulos") { required = true }
+                name(Langs.ENGLISH_UNITED_STATES, "search")
+                description(Langs.ENGLISH_UNITED_STATES, "Search manga by title")
+
+                string("texto", "Texto a buscar en los títulos") {
+                    required = true
+                    name(Langs.ENGLISH_UNITED_STATES, "text")
+                    description(Langs.ENGLISH_UNITED_STATES, "Text to look up in the titles")
+                }
             }
 
             handler {
                 interaction.respondPublic {
-                    val searchTerms = interaction.command.strings["text"]!!
+                    val searchTerms = interaction.command.strings["texto"]!!
                     val mangaList = db.searchManga(searchTerms)
 
                     mangaList.firstOrNull()?.let { manga: MangaWithTags ->
@@ -94,28 +102,70 @@ class MangaKog(
 
         inputCommand {
             name = "sugerir"
-            description = "Agrega un manga con los datos proporcionados."
+            description = "Agrega un manga con los datos proporcionados"
 
             command {
-                string("manga_title", "El título del manga") { required = true }
+                name(Langs.ENGLISH_UNITED_STATES, "recommend")
+                description(Langs.ENGLISH_UNITED_STATES, "Add a manga entry with the supplied data")
+
+                string("título", "El título del manga") {
+                    required = true
+                    name(Langs.ENGLISH_UNITED_STATES, "title")
+                    description(Langs.ENGLISH_UNITED_STATES, "The title of the manga")
+                }
                 // TODO: Store description `minLength` and `maxLength` in db, remove hardcoded values
                 //  label: enhancement
-                string("description", "El título del manga") { required = true; minLength = 20; maxLength = 500 }
-                string("link", "Link para comprar o leer el manga.") { required = true }
-                string("demographic", "Demografía del manga.") {
+                string("descripción", "Una corta descripción del manga") {
+                    required = true; minLength = 20; maxLength = 500
+                    name(Langs.ENGLISH_UNITED_STATES, "description")
+                    description(Langs.ENGLISH_UNITED_STATES, "Brief description of the manga")
+                }
+                string("link", "Link para comprar o leer el manga.") {
                     required = true
+                    name(Langs.ENGLISH_UNITED_STATES, "link")
+                    description(Langs.ENGLISH_UNITED_STATES, "Website where this title can be read or bought")
+                }
+                string("demografía", "Demografía del manga.") {
+                    required = true
+                    name(Langs.ENGLISH_UNITED_STATES, "demographic")
+                    description(Langs.ENGLISH_UNITED_STATES, "Target demographic of this title")
+
                     Demographic.values().forEach { n -> choice(n.alias, n.alias) }
                 }
 
-                string("tags", "Géneros del manga. Dividir por coma: \"tag uno, tag dos\".") {
+                string("tags", "Géneros del manga. Dividir por coma: \"tag uno, tag dos\"") {
                     required = true
+                    name(Langs.ENGLISH_UNITED_STATES, "tags")
+                    description(Langs.ENGLISH_UNITED_STATES, "Genres/themes of this title. Divide by comma: \"first tag, second tag\"")
                 }
 
-                int("chapters", "Cantidad de capítulos.") { required = true }
-                int("ppc", "Cantidad de páginas por capítulo.")
-                int("volumes", "Cantidad de tomos.")
-                int("ppv", "Cantidad de páginas por tomo.")
-                attachment("image", "Portada del manga.")
+                int("capítulos", "Cantidad de capítulos") {
+                    required = true
+                    name(Langs.ENGLISH_UNITED_STATES, "chapters")
+                    description(Langs.ENGLISH_UNITED_STATES, "Extension of the manga in number of chapters")
+                }
+
+                int("páginasporcapítulo", "Cantidad de páginas por capítulo") {
+                    name(Langs.ENGLISH_UNITED_STATES, "pagesperchapter")
+                    description(Langs.ENGLISH_UNITED_STATES, "Extension of a single chapter in number of pages")
+
+                }
+
+                int("tomos", "Cantidad de tomos") {
+                    name(Langs.ENGLISH_UNITED_STATES, "volumes")
+                    description(Langs.ENGLISH_UNITED_STATES, "Extension of the manga in number of volumes.")
+                }
+
+                int("páginasportomo", "Cantidad de páginas por tomo") {
+                    name(Langs.ENGLISH_UNITED_STATES, "pagespervolume")
+                    description(Langs.ENGLISH_UNITED_STATES, "Extension of a single volume in number of pages.")
+
+                }
+
+                attachment("imagen", "Portada del manga") {
+                    name(Langs.ENGLISH_UNITED_STATES, "image")
+                    description(Langs.ENGLISH_UNITED_STATES, "Cover of the manga")
+                }
             }
 
             handler {
@@ -125,30 +175,30 @@ class MangaKog(
 
                 val c = interaction.command
 
-                val title = c.strings["manga_title"]!!
-                val description = c.strings["description"]!!
+                val title = c.strings["título"]!!
+                val description = c.strings["descripción"]!!
                 val link = c.strings["link"]!!
                 // TODO: Demographic check on manga submission crashes bot sometimes
                 //  This is caused by the fact it excepcts to find the value of an enum as
                 //  a string, but what's being stored are the alias, so they dont always match
                 //  (`"OTHER" != "otros.uppercase()`)
                 //  labels: bug
-                val demographic = enumValueOf<Demographic>(c.strings["demographic"]!!.uppercase())
+                val demographic = enumValueOf<Demographic>(c.strings["demografía"]!!.uppercase())
                 val tags = c.strings["tags"]!!
                     .split(',')
                     .filter(String::isNotBlank)
                     .map(String::trim)
                     .toSet()
 
-                val chapters = c.integers["chapters"]!!
-                val volumes = c.integers["volumes"]
-                val ppv = c.integers["ppv"]
+                val chapters = c.integers["capítulos"]!!
+                val volumes = c.integers["tomos"]
+                val ppv = c.integers["páginasportomo"]
 
-                val ppc = c.integers["ppc"] ?: if (ppv != null && volumes != null)
+                val ppc = c.integers["páginasporcapítulo"] ?: if (ppv != null && volumes != null)
                     ppv * volumes / chapters
                 else -1
 
-                val image: Attachment? = c.attachments["image"]
+                val image: Attachment? = c.attachments["imagen"]
                 val validImage: Boolean = image.isValidImage()
 
                 val isValid = c.integers.values.all { it > 0 }
