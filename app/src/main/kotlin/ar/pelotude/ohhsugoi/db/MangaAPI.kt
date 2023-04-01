@@ -3,15 +3,22 @@ package ar.pelotude.ohhsugoi.db
 import java.io.IOException
 import java.net.URL
 
-enum class Demographic(val alias: String) {
-    SEINEN("seinen"),
-    SHOUNEN("shounen"),
-    SHOUJO("shoujo"),
-    JOSUEI("jousei"),
-    KOMODO("komodo"),
-    HOBBY("hobby"),
-    OTHER("otros"),
-}
+// TODO: Make choosing demographics it safer
+//  this includes changing the line
+//  ```kotlin
+//  demographics = demographic ?: "Otros",
+//  ```
+//  at MangaDatabase.kt
+val demographics = setOf<String>(
+        "Seinen",
+        "Shounen",
+        "Shoujo",
+        "Jousei",
+        "Komodo",
+        "Hobby",
+        "Otros",
+)
+
 interface Manga {
     val id: Long
     val title: String
@@ -94,7 +101,7 @@ interface MangaDatabase {
         description: String,
         imgURLSource: URL? = null,
         link: String? = null,
-        demographic: Demographic? = null,
+        demographic: String? = null,
         volumes: Long? = null,
         pagesPerVolume: Long? = null,
         chapters: Long? = null,

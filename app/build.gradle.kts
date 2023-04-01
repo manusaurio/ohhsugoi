@@ -16,6 +16,7 @@ dependencies {
     implementation("app.cash.sqldelight", "sqlite-driver", "2.0.0-alpha05")
     implementation("app.cash.sqldelight", "primitive-adapters", "2.0.0-alpha05")
     implementation("org.slf4j", "slf4j-simple","2.0.7")
+    implementation("com.kotlindiscord.kord.extensions", "kord-extensions", "1.5.6")
 }
 
 application {

@@ -1,12 +1,18 @@
 package ar.pelotude.ohhsugoi
 
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
-import ar.pelotude.ohhsugoi.koggable.KoggableKord
+import com.kotlindiscord.kord.extensions.ExtensibleBot
 
 suspend fun main() {
     val database = MangaDatabaseSQLite()
 
-    KoggableKord(System.getenv("KORD_TOKEN")) {
-        register(MangaKog(database))
-    }.kord.login()
+    ExtensibleBot(System.getenv("KORD_TOKEN")) {
+        extensions {
+            add { MangaExtension(database) }
+        }
+
+        i18n {
+            defaultLocale = java.util.Locale.forLanguageTag("es")
+        }
+    }.start()
 }
