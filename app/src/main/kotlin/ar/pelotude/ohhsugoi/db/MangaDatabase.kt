@@ -4,9 +4,10 @@ import app.cash.sqldelight.TransactionCallbacks
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.Database
+import ar.pelotude.ohhsugoi.makeTitle
 import ar.pelotude.ohhsugoi.uuidString
 import kotlinx.coroutines.*
-import manga.data.SearchMangaWithTags
+import manga.data.SearchMangaWithTagsFTS
 import java.io.IOException
 import java.net.URL
 import java.nio.file.Files
@@ -17,6 +18,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.extension
 import dev.kord.core.kordLogger
+import manga.data.SearchMangaWithTags
 
 class MangaDatabaseSQLite(
     private val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY),
@@ -47,9 +49,24 @@ class MangaDatabaseSQLite(
         }
     }
 
-    override suspend fun searchManga(text: String, limit: Long): Collection<MangaWithTags> {
+    override suspend fun searchManga(
+        text: String?,
+        tagFilter: String?,
+        demographicFilter: String?,
+        limit: Long
+    ): Collection<MangaWithTags> {
         return withContext(dispatcher) {
-            queries.searchMangaWithTags(text, limit).executeAsList().map(SearchMangaWithTags::toAPIMangaWithTags)
+            val titleTagFilter = tagFilter?.makeTitle()
+
+            return@withContext if (text != null) queries.searchMangaWithTagsFTS(
+                "title: $text",
+                titleTagFilter,
+                demographicFilter,
+                limit
+            ).executeAsList().map(SearchMangaWithTagsFTS::toAPIMangaWithTags)
+            else queries.searchMangaWithTags(
+                titleTagFilter, demographicFilter, limit
+            ).executeAsList().map(SearchMangaWithTags::toAPIMangaWithTags)
         }
     }
 
@@ -123,7 +140,7 @@ class MangaDatabaseSQLite(
                 description = description,
                 link = link,
                 img_URL = null,
-                demographics = demographic ?: "Otros",
+                demographics = demographic ?: "Otros", // XXX ! TODO
                 volumes = volumes,
                 pages_per_volume = pagesPerVolume,
                 chapters = chapters,
@@ -131,7 +148,8 @@ class MangaDatabaseSQLite(
                 read = read.sqliteBool()
             ).executeAsOne()
 
-            addTags(mangaId, tags)
+            val titleTags = tags.map(String::makeTitle).toSet()
+            addTags(mangaId, titleTags)
 
             if (imgURLSource != null) {
                 val imgFileName = imgURLSource.downloadImage(mangaId)

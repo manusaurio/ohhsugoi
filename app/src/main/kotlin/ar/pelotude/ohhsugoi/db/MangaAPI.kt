@@ -87,7 +87,12 @@ interface MangaDatabase {
 
     suspend fun getTaggedManga(id: Long): MangaWithTags?
 
-    suspend fun searchManga(text: String, limit: Long = 1): Collection<MangaWithTags>
+    suspend fun searchManga(
+        text: String? = null,
+        tagFilter: String? = null,
+        demographicFilter: String? = null,
+        limit: Long = 1
+    ): Collection<MangaWithTags>
 
     /**
      * Adds a manga entry to the database. If an exception is thrown during
