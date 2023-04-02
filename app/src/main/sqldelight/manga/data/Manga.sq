@@ -117,9 +117,10 @@ LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
 LEFT JOIN tag ON tag.id = ass.tag_id
 JOIN mangafts ON mangafts.manga_id = manga.id
 WHERE (mangafts MATCH :terms)
-    AND (tag.title = :tag_filter OR :tag_filter IS NULL)
     AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
-GROUP BY manga.id LIMIT :limit;
+GROUP BY manga.id
+HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
+LIMIT :limit;
 
 -- TODO: unify the two following queries
 -- TODO: show all tags
@@ -127,9 +128,10 @@ searchMangaWithTags:
 SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
 LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
 LEFT JOIN tag ON tag.id = ass.tag_id
-WHERE (tag.title = :tag_filter OR :tag_filter IS NULL)
-    AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
-GROUP BY manga.id LIMIT :limit;
+WHERE (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
+GROUP BY manga.id
+HAVING MAX(tag.title = :tag_filter) = TRUE OR :tag_filter IS NULL
+LIMIT :limit;
 
 selectMangaWithTags:
 SELECT manga.*, GROUP_CONCAT(tag.title) tags FROM manga

@@ -57,15 +57,14 @@ class MangaDatabaseSQLite(
     ): Collection<MangaWithTags> {
         return withContext(dispatcher) {
             val titleTagFilter = tagFilter?.makeTitle()
-
             return@withContext if (text != null) queries.searchMangaWithTagsFTS(
                 "title: $text",
-                titleTagFilter,
                 demographicFilter,
+                titleTagFilter,
                 limit
             ).executeAsList().map(SearchMangaWithTagsFTS::toAPIMangaWithTags)
             else queries.searchMangaWithTags(
-                titleTagFilter, demographicFilter, limit
+                demographicFilter, titleTagFilter, limit
             ).executeAsList().map(SearchMangaWithTags::toAPIMangaWithTags)
         }
     }
