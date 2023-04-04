@@ -51,7 +51,9 @@ SELECT last_insert_rowid();
 }
 
 insertTag:
-INSERT INTO tag(title) VALUES (?);
+INSERT INTO tag(title) VALUES (?)
+ON CONFLICT(title) DO UPDATE SET title=excluded.title
+RETURNING id;
 
 insertTagAssociation:
 INSERT INTO manga_tag_association(tag_id, manga_id) VALUES(?, ?);

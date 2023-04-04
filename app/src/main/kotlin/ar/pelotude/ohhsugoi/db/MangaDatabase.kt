@@ -104,18 +104,9 @@ class MangaDatabaseSQLite(
      *
      * This function does not request its own transaction and should be called within one.
      */
-    private fun TransactionCallbacks.addTags(mangaId: Long, tags: Set<String>) {
-        // TODO: Refactor `insertTags` making it not insert tags one by one, or to not depend on catching SQL exceptions
-        //  If it's necessary to use exceptions, make it something more specific to sqlite than `SQLException`
-        //  labels: enhancement
+    private fun TransactionCallbacks.addTags(mangaId: Long, tags: Collection<String>) {
         for (tag in tags) {
-            val tagId: Long = try {
-                queries.insertTag(tag)
-                queries.getLastInsertRowId().executeAsOne()
-            } catch (e: SQLException) { // UNIQUE, use stored instead
-                queries.selectTagId(tag).executeAsOne()
-            }
-
+            val tagId: Long = queries.insertTag(tag).executeAsOne()
             queries.insertTagAssociation(tagId, mangaId)
         }
     }
