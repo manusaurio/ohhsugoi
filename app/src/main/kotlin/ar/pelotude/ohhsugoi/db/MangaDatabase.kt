@@ -12,7 +12,6 @@ import java.io.IOException
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
-import java.sql.SQLException
 import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
