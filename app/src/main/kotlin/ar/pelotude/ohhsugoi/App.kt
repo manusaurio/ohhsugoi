@@ -1,18 +1,22 @@
 package ar.pelotude.ohhsugoi
 
-import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
+import ar.pelotude.ohhsugoi.koin.botModule
 import com.kotlindiscord.kord.extensions.ExtensibleBot
+import com.kotlindiscord.kord.extensions.utils.getKoin
+import java.util.Locale.forLanguageTag
 
 suspend fun main() {
-    val database = MangaDatabaseSQLite()
-
-    ExtensibleBot(System.getenv("KORD_TOKEN")) {
+    val kordEx = ExtensibleBot(System.getenv("KORD_TOKEN")) {
         extensions {
-            add { MangaExtension(database) }
+            add(::MangaExtension)
         }
 
         i18n {
-            defaultLocale = java.util.Locale.forLanguageTag("es")
+            defaultLocale = forLanguageTag("es")
         }
-    }.start()
+    }
+
+    getKoin().loadModules(listOf(botModule))
+
+    kordEx.start()
 }

@@ -26,7 +26,7 @@ CREATE TABLE manga_tag_association (
 
 CREATE INDEX tag_index ON manga_tag_association(tag_id, manga_id);
 
-CREATE VIRTUAL TABLE mangafts USING fts4(manga_id INTEGER, title TEXT);
+CREATE VIRTUAL TABLE mangafts USING fts5(manga_id INTEGER, title TEXT);
 
 CREATE TRIGGER insert_into_mangafts
 AFTER INSERT ON manga
@@ -51,7 +51,9 @@ SELECT last_insert_rowid();
 }
 
 insertTag:
-INSERT INTO tag(title) VALUES (?);
+INSERT INTO tag(title) VALUES (?)
+ON CONFLICT(title) DO UPDATE SET title=excluded.title
+RETURNING id;
 
 insertTagAssociation:
 INSERT INTO manga_tag_association(tag_id, manga_id) VALUES(?, ?);
@@ -111,12 +113,27 @@ UPDATE manga
 SET img_URL = :imgURL
 WHERE manga.id = :mangaId;
 
-searchMangaWithTags:
+searchMangaWithTagsFTS:
 SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
 LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
 LEFT JOIN tag ON tag.id = ass.tag_id
 JOIN mangafts ON mangafts.manga_id = manga.id
-WHERE mangafts MATCH ? GROUP BY manga.id LIMIT :limit;
+WHERE (mangafts MATCH :terms)
+    AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
+GROUP BY manga.id
+HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
+LIMIT :limit;
+
+-- TODO: unify the two following queries
+-- TODO: show all tags
+searchMangaWithTags:
+SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
+LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
+LEFT JOIN tag ON tag.id = ass.tag_id
+WHERE (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
+GROUP BY manga.id
+HAVING MAX(tag.title = :tag_filter) = TRUE OR :tag_filter IS NULL
+LIMIT :limit;
 
 selectMangaWithTags:
 SELECT manga.*, GROUP_CONCAT(tag.title) tags FROM manga

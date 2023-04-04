@@ -4,9 +4,10 @@ import app.cash.sqldelight.TransactionCallbacks
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.Database
+import ar.pelotude.ohhsugoi.makeTitle
 import ar.pelotude.ohhsugoi.uuidString
 import kotlinx.coroutines.*
-import manga.data.SearchMangaWithTags
+import manga.data.SearchMangaWithTagsFTS
 import java.io.IOException
 import java.net.URL
 import java.nio.file.Files
@@ -17,6 +18,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.extension
 import dev.kord.core.kordLogger
+import manga.data.SearchMangaWithTags
 
 class MangaDatabaseSQLite(
     private val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY),
@@ -47,9 +49,23 @@ class MangaDatabaseSQLite(
         }
     }
 
-    override suspend fun searchManga(text: String, limit: Long): Collection<MangaWithTags> {
+    override suspend fun searchManga(
+        text: String?,
+        tagFilter: String?,
+        demographicFilter: String?,
+        limit: Long
+    ): Collection<MangaWithTags> {
         return withContext(dispatcher) {
-            queries.searchMangaWithTags(text, limit).executeAsList().map(SearchMangaWithTags::toAPIMangaWithTags)
+            val titleTagFilter = tagFilter?.makeTitle()
+            return@withContext if (text != null) queries.searchMangaWithTagsFTS(
+                "title: $text",
+                demographicFilter,
+                titleTagFilter,
+                limit
+            ).executeAsList().map(SearchMangaWithTagsFTS::toAPIMangaWithTags)
+            else queries.searchMangaWithTags(
+                demographicFilter, titleTagFilter, limit
+            ).executeAsList().map(SearchMangaWithTags::toAPIMangaWithTags)
         }
     }
 
@@ -88,18 +104,9 @@ class MangaDatabaseSQLite(
      *
      * This function does not request its own transaction and should be called within one.
      */
-    private fun TransactionCallbacks.addTags(mangaId: Long, tags: Set<String>) {
-        // TODO: Refactor `insertTags` making it not insert tags one by one, or to not depend on catching SQL exceptions
-        //  If it's necessary to use exceptions, make it something more specific to sqlite than `SQLException`
-        //  labels: enhancement
+    private fun TransactionCallbacks.addTags(mangaId: Long, tags: Collection<String>) {
         for (tag in tags) {
-            val tagId: Long = try {
-                queries.insertTag(tag)
-                queries.getLastInsertRowId().executeAsOne()
-            } catch (e: SQLException) { // UNIQUE, use stored instead
-                queries.selectTagId(tag).executeAsOne()
-            }
-
+            val tagId: Long = queries.insertTag(tag).executeAsOne()
             queries.insertTagAssociation(tagId, mangaId)
         }
     }
@@ -123,7 +130,7 @@ class MangaDatabaseSQLite(
                 description = description,
                 link = link,
                 img_URL = null,
-                demographics = demographic ?: "Otros",
+                demographics = demographic ?: "Otros", // XXX ! TODO
                 volumes = volumes,
                 pages_per_volume = pagesPerVolume,
                 chapters = chapters,
@@ -131,7 +138,8 @@ class MangaDatabaseSQLite(
                 read = read.sqliteBool()
             ).executeAsOne()
 
-            addTags(mangaId, tags)
+            val titleTags = tags.map(String::makeTitle).toSet()
+            addTags(mangaId, titleTags)
 
             if (imgURLSource != null) {
                 val imgFileName = imgURLSource.downloadImage(mangaId)

@@ -23,3 +23,6 @@ fun randomString(length: Int): String {
 fun uuidString() = UUID.randomUUID().toString()
 
 fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+
+/** But like in "This is a title", not "This Is A Title" */
+fun String.makeTitle() = this.lowercase().capitalize()

@@ -2,6 +2,7 @@ package ar.pelotude.ohhsugoi
 
 import ar.pelotude.ohhsugoi.db.*
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
@@ -11,13 +12,15 @@ import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import dev.kord.common.Color
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Attachment
-import dev.kord.rest.builder.interaction.*
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.net.URL
-import java.util.*
 
-class MangaExtension(val db: MangaDatabase): Extension() {
+class MangaExtension: Extension(), KoinComponent {
+    private val db: MangaDatabase by inject()
+
     override val name = "manga"
 
     private fun URL.seemsSafe() =
@@ -87,25 +90,46 @@ class MangaExtension(val db: MangaDatabase): Extension() {
     }
 
     class SearchMangaArgs : Arguments() {
-        val title by string {
+        val title by optionalString {
             name = "título"
             description = "El título del manga a buscar"
+        }
+
+        val tag by optionalString {
+            name = "tag"
+            description = "Tag por el cual filtrar"
+        }
+
+        val demographic by optionalStringChoice {
+            name = "demografía"
+            description = "Demografía por la cual filtrar"
+
+            demographics.forEach {
+                choice(it, it)
+            }
         }
     }
 
     override suspend fun setup() {
         publicSlashCommand(::SearchMangaArgs) {
             name = "buscar"
-            description = "busca un manga por nombre"
+            description = "Busca un manga por nombre, tag, y/o demografía"
             guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
 
             action {
-                val mangaList = db.searchManga(arguments.title, 3)
+                val (title, tag, demographic) = with (arguments) { Triple(title, tag, demographic) }
+
+                if (listOf(title, tag, demographic).all { it == null }) {
+                    respond { content = "Debes especificar al menos un criterio." }
+                    return@action
+                }
+
+                val mangaList = db.searchManga(title, tag, demographic, 3)
 
                 when {
                     mangaList.isEmpty() -> respond {
                         embed {
-                            title = "Sin resultados"
+                            this.title = "Sin resultados"
                             description = "No se encontró nada similar a ${arguments.title}"
                             color = Color(200, 0, 0)
                         }
@@ -175,7 +199,7 @@ class MangaExtension(val db: MangaDatabase): Extension() {
                                 tags = tags,
                                 read = false
                         )
-                            content = "Agregado exitosamente."
+                        content = "Agregado exitosamente."
                         } catch (e: DownloadException) {
                             content = "Error al agregar."
                         } else {
@@ -186,57 +210,4 @@ class MangaExtension(val db: MangaDatabase): Extension() {
             }
         }
     }
-}
-
-
-/**
- * Builds a manga view from the scope of an [EmbedBuilder] and returns it.
- *
- * @return The [EmbedBuilder] this function was called from.
- */
-fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
-    title = manga.title
-
-    manga.imgURLSource?.let { imgURL ->
-        thumbnail {
-            url = imgURL.toString()
-        }
-    }
-
-    field {
-        name = "Categorías"
-
-        val tags = manga.tags.takeIf(Set<*>::isNotEmpty)?.joinToString(
-                separator = ", ",
-                prefix = " ",
-                postfix = ".".replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-        ) ?: ""
-        value = "${manga.demographic}.$tags"
-    }
-
-    field {
-        name = "Tomos"
-        value = manga.volumes?.toString() ?: "?"
-        inline = true
-    }
-    field {
-        name = "Páginas por tomo"
-        value = manga.pagesPerVolume?.let { "~$it" } ?: "?"
-        inline = true
-    }
-    field {
-        name = "Páginas por capítulo"
-        value = manga.pagesPerChapter?.let { "~$it" } ?: "?"
-        inline = true
-    }
-
-    description =
-            manga.description +
-                    "\n[Leer](${manga.link})"
-
-    footer {
-        text = if (manga.read) "Leído por el club." else "No leído por el club."
-    }
-
-    return this
 }
