@@ -9,6 +9,7 @@ import manga.data.Manga as MangaSQLD
 internal fun MangaSQLD.toAPIManga(): Manga {
     return MangaData(
         id=id,
+        insertionDate=insertion_date,
         title=title,
         description=description,
         link=link,
@@ -26,6 +27,7 @@ internal fun MangaWithTagsSQLD.toAPIMangaWithTags(): MangaWithTags {
     return MangaWithTagsData(
         MangaData(
             id=id,
+            insertionDate=insertion_date,
             title=title,
             description=description,
             link=link,
@@ -45,6 +47,7 @@ internal fun MangaWithTagsFTSSQLD.toAPIMangaWithTags(): MangaWithTags {
     return MangaWithTagsData(
         MangaData(
             id=id,
+            insertionDate=insertion_date,
             title=title,
             description=description,
             link=link,
@@ -64,6 +67,7 @@ internal fun SelectMangaWithTags.toAPIMangaWithTags(): MangaWithTags {
     return MangaWithTagsData(
         MangaData(
             id=id,
+            insertionDate=insertion_date,
             title=title,
             description=description,
             link=link,

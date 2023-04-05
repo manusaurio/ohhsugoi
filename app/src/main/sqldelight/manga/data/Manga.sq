@@ -9,7 +9,10 @@ CREATE TABLE manga(
   pages_per_volume INTEGER,
   chapters INTEGER,
   pages_per_chapter INTEGER,
-  read INTEGER NOT NULL --boolean
+  read INTEGER NOT NULL, --boolean
+  insertion_date INTEGER NOT NULL DEFAULT (UNIXEPOCH()),
+  author_id INTEGER,
+  deleted INTEGER NOT NULL DEFAULT 0 --bolean
 );
 
 CREATE TABLE tag (
@@ -35,9 +38,11 @@ BEGIN
   VALUES (new.id, new.title);
 END;
 
-selectAll:
-SELECT *
-FROM manga;
+CREATE TRIGGER update_into_mangafts
+AFTER UPDATE ON manga
+BEGIN
+    UPDATE mangafts SET title = new.title WHERE manga_id = new.id;
+END;
 
 select:
 SELECT *
@@ -82,25 +87,31 @@ SET
   chapters = CASE WHEN :chapters IS NULL THEN chapters ELSE :chapters END,
   pages_per_chapter = CASE WHEN :pages_per_chapter IS NULL THEN pages_per_chapter ELSE :pages_per_chapter END,
   read = CASE WHEN :read IS NULL THEN read ELSE :read END
-WHERE id = :manga_id;
+WHERE id = :manga_id AND insertion_date = :insertion_date;
 
 unsetImgURL:
-UPDATE manga SET img_URL = NULL WHERE id = :manga_id;
+UPDATE manga SET img_URL = NULL
+WHERE id = :manga_id AND insertion_date = :insertion_date;
 
 unsetLink:
-UPDATE manga SET link = NULL WHERE id = :manga_id;
+UPDATE manga SET link = NULL
+WHERE id = :manga_id AND insertion_date = :insertion_date;
 
 unsetVolumes:
-UPDATE manga SET volumes = NULL WHERE id = :manga_id;
+UPDATE manga SET volumes = NULL
+WHERE id = :manga_id AND insertion_date = :insertion_date;
 
 unsetPagesPerVolume:
-UPDATE manga SET pages_per_volume = NULL WHERE id = :manga_id;
+UPDATE manga SET pages_per_volume = NULL
+WHERE id = :manga_id AND insertion_date = :insertion_date;
 
 unsetChapters:
-UPDATE manga SET chapters = NULL WHERE id = :manga_id;
+UPDATE manga SET chapters = NULL
+WHERE id = :manga_id AND insertion_date = :insertion_date;
 
 unsetPagesPerChapter:
-UPDATE manga SET pages_per_chapter = NULL WHERE id = :manga_id;
+UPDATE manga SET pages_per_chapter = NULL
+WHERE id = :manga_id AND insertion_date = :insertion_date;
 
 getLastInsertRowId:
 SELECT last_insert_rowid();
@@ -125,7 +136,6 @@ HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
 LIMIT :limit;
 
 -- TODO: unify the two following queries
--- TODO: show all tags
 searchMangaWithTags:
 SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
 LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id

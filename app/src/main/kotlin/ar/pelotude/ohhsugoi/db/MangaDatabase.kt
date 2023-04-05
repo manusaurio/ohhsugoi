@@ -104,7 +104,8 @@ class MangaDatabaseSQLite(
      * This function does not request its own transaction and should be called within one.
      */
     private fun TransactionCallbacks.addTags(mangaId: Long, tags: Collection<String>) {
-        for (tag in tags) {
+        val titledTags = tags.map(String::makeTitle).toSet()
+        for (tag in titledTags) {
             val tagId: Long = queries.insertTag(tag).executeAsOne()
             queries.insertTagAssociation(tagId, mangaId)
         }
@@ -137,8 +138,7 @@ class MangaDatabaseSQLite(
                 read = read.sqliteBool()
             ).executeAsOne()
 
-            val titleTags = tags.map(String::makeTitle).toSet()
-            addTags(mangaId, titleTags)
+            addTags(mangaId, tags)
 
             if (imgURLSource != null) {
                 val imgFileName = imgURLSource.downloadImage(mangaId)
@@ -155,16 +155,17 @@ class MangaDatabaseSQLite(
 
     override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {
         val mangaId = changes.id
+        val insertionDate = changes.insertionDate
 
         queries.transaction {
             flags.forEach { flag ->
                 when (flag) {
-                    UpdateFlags.UNSET_IMG_URL -> queries.unsetImgURL(mangaId)
-                    UpdateFlags.UNSET_LINK -> queries.unsetLink(mangaId)
-                    UpdateFlags.UNSET_VOLUMES -> queries.unsetVolumes(mangaId)
-                    UpdateFlags.UNSET_PPV -> queries.unsetPagesPerVolume(mangaId)
-                    UpdateFlags.UNSET_CHAPTERS -> queries.unsetChapters(mangaId)
-                    UpdateFlags.UNSET_PPC -> queries.unsetPagesPerChapter(mangaId)
+                    UpdateFlags.UNSET_IMG_URL -> queries.unsetImgURL(mangaId, insertionDate)
+                    UpdateFlags.UNSET_LINK -> queries.unsetLink(mangaId, insertionDate)
+                    UpdateFlags.UNSET_VOLUMES -> queries.unsetVolumes(mangaId, insertionDate)
+                    UpdateFlags.UNSET_PPV -> queries.unsetPagesPerVolume(mangaId, insertionDate)
+                    UpdateFlags.UNSET_CHAPTERS -> queries.unsetChapters(mangaId, insertionDate)
+                    UpdateFlags.UNSET_PPC -> queries.unsetPagesPerChapter(mangaId, insertionDate)
                 }
             }
 
@@ -182,7 +183,7 @@ class MangaDatabaseSQLite(
                 queries.updateNonNullablesManga(
                     title, description, imgFilePath, link, demographic,
                     volumes, pagesPerVolume, chapters, pagesPerChapter, read?.sqliteBool(),
-                    mangaId,
+                    mangaId, insertionDate
                 )
             }
 
@@ -190,12 +191,10 @@ class MangaDatabaseSQLite(
                 addTags(mangaId, tags)
             }
 
-            changes.let { c ->
-                if (c.tagsToAdd != null && c.tagsToRemove != null) {
-                    (c.tagsToRemove subtract c.tagsToAdd).takeIf(Set<*>::isNotEmpty)?.let { tags ->
-                        queries.removeTagAssociation(mangaId, tags)
-                    }
-                }
+            val tagsToRemove = changes.tagsToRemove?.map(String::makeTitle)
+
+            tagsToRemove?.let { tags ->
+                queries.removeTagAssociation(mangaId, tags)
             }
         }
     }

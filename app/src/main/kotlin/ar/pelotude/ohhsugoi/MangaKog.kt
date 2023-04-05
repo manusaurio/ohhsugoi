@@ -5,13 +5,16 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
+import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
+import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import dev.kord.common.Color
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Attachment
+import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
 import org.koin.core.component.KoinComponent
@@ -29,15 +32,25 @@ class MangaExtension: Extension(), KoinComponent {
     private fun Attachment?.isValidImage(): Boolean =
             this == null || isImage && size < 8000000 && URL(url).seemsSafe()
 
+    private fun String.toTagSet() =
+            this.split(',')
+            .filter(String::isNotBlank)
+            .map(String::trim)
+            .toSet()
+
     class AddMangaArgs : Arguments() {
         val title by string {
             name = "título"
             description = "El título del manga"
+            minLength = 1
+            maxLength = 100
         }
 
         val description by string {
             name = "descripción"
             description ="Descripción del manga"
+            minLength = 20
+            maxLength = 256
         }
 
         val link by string {
@@ -158,11 +171,7 @@ class MangaExtension: Extension(), KoinComponent {
             guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
 
             action {
-                val tags = arguments.tags
-                        .split(',')
-                        .filter(String::isNotBlank)
-                        .map(String::trim)
-                        .toSet()
+                val tags = arguments.tags.toTagSet()
 
                 val chapters = arguments.chapters
                 val volumes = arguments.volumes
@@ -205,6 +214,135 @@ class MangaExtension: Extension(), KoinComponent {
                         } else {
                         // TODO: Point out the reason(s) the arguments validation didn't pass after trying to submit an entry.
                         content = "Error en los argumentos."
+                    }
+                }
+            }
+        }
+
+        class EditArguments: Arguments() {
+            val id by long {
+                name = "id"
+                description = "El id del manga a editar."
+            }
+
+            val title by optionalString {
+                name = "nuevonombre"
+                description = "Nuevo tíutlo del manga"
+                minLength = 1
+                maxLength = 100
+            }
+
+            val description by optionalString {
+                name = "descripción"
+                description = "Nueva descripción"
+                minLength = 20
+                maxLength = 256
+            }
+
+            val link by optionalString {
+                name = "link"
+                description ="Nuevo link donde comprar o leer el manga"
+            }
+
+            val volumes by optionalLong {
+                name = "tomos"
+                description = "Nueva cantidad de tomos"
+            }
+
+            val pagesPerVolume by optionalLong {
+                name = "páginasportomo"
+                description = "Nueva cantidad de páginas por tomo"
+            }
+
+            val chapters by optionalLong {
+                name = "capítulos"
+                description = "Nueva cantidad de capítulos"
+            }
+
+            val pagesPerChapter by optionalLong {
+                name = "páginasporcapítulo"
+                description = "Nueva cantidad de páginas por capítulo"
+            }
+
+            val demographic by optionalStringChoice {
+                name = "demografía"
+                description = "Nueva demografía del manga"
+                demographics.forEach {
+                    choice(it, it)
+                }
+            }
+
+            val addTags by optionalString {
+                name = "nuevostags"
+                description = "Nuevos tags para este título"
+            }
+
+            val removeTags by optionalString {
+                name = "removertags"
+                description = "Tags a ser removidos"
+            }
+
+            val unsetImage by optionalBoolean {
+                name = "sacarimagen"
+                description = "Elimina la imagen del manga."
+            }
+        }
+
+        publicSlashCommand(::EditArguments) {
+            name = "editar"
+            description = "Modifica o elimina los campos de un manga"
+            guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
+
+            action {
+                val flags = mutableListOf<UpdateFlags>()
+
+                arguments.unsetImage?.let { flags.add(UpdateFlags.UNSET_IMG_URL) }
+
+                val currentManga = db.getManga(arguments.id)
+
+                currentManga ?: run {
+                    respond {
+                        content = "La id ${arguments.id} no pudo ser encontrada"
+                    }
+                    return@action
+                }
+
+                respond {
+                    confirmMangaEdition(
+                            "¿Confirmas la edición sobre ${currentManga.title}?",
+                            user.asUser(),
+                    ) {
+                        edit { components {  } }
+
+                        with (arguments) {
+                            val mangaChanges = MangaChanges(
+                                    id=id,
+                                    insertionDate=currentManga.insertionDate,
+                                    title=title,
+                                    description=description,
+                                    imgURLSource=null,
+                                    link=link,
+                                    volumes=volumes,
+                                    pagesPerVolume=pagesPerVolume,
+                                    chapters=chapters,
+                                    pagesPerChapter=pagesPerChapter,
+                                    demographic=demographic,
+                                    tagsToAdd=addTags?.toTagSet(),
+                                    tagsToRemove=removeTags?.toTagSet(),
+                                    read=null,
+                            )
+
+                            respond {
+                                content = try {
+                                    db.updateManga(mangaChanges, *flags.toTypedArray())
+                                    kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${mangaChanges.title})" }
+                                    "**${currentManga.title}** editado exitosamente."
+                                } catch(e: DownloadException) {
+                                    kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
+                                    "Hubo un error descargando la imagen."
+                                }
+                            }
+                        }
                     }
                 }
             }
