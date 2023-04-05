@@ -12,7 +12,6 @@ import java.io.IOException
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.extension
@@ -24,16 +23,25 @@ class MangaDatabaseSQLite(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : MangaDatabase {
     private val database: Database = Database.Schema.run {
-        create(driver)
+        kordLogger.info { "Database not specified: Assuming sqlite." }
+
+        val userVersion = driver.executeQuery(
+            null,
+            "PRAGMA user_version;",
+            { c -> c.getLong(0) },
+            0
+        ).value
+
+        kordLogger.info { "Initializing sqlite database. sqlite user_version: $userVersion" }
+
+        if (userVersion == 0L) {
+            kordLogger.info { "Creating database from the scratch..." }
+            create(driver)
+        }
+
         return@run Database(driver)
     }
     private val queries = database.mangaQueries
-
-    init {
-        with(driver) {
-            // TODO: set up database
-        }
-    }
 
     override suspend fun getManga(id: Long): Manga? {
         val manga = queries.select(id).executeAsOneOrNull()
