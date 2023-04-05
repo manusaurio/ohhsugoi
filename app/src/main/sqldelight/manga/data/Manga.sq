@@ -49,11 +49,10 @@ SELECT *
 FROM manga
 WHERE id = ?;
 
-insert {
+insert:
 INSERT INTO manga(title, description, link, img_URL, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-SELECT last_insert_rowid();
-}
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id;
 
 insertTag:
 INSERT INTO tag(title) VALUES (?)
