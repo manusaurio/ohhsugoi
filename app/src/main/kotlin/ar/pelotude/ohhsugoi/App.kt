@@ -1,5 +1,6 @@
 package ar.pelotude.ohhsugoi
 
+import ar.pelotude.ohhsugoi.bot.MangaExtension
 import ar.pelotude.ohhsugoi.koin.botModule
 import com.kotlindiscord.kord.extensions.ExtensibleBot
 import com.kotlindiscord.kord.extensions.utils.getKoin

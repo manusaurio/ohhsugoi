@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi
+package ar.pelotude.ohhsugoi.bot
 
 import dev.kord.common.entity.Snowflake
 

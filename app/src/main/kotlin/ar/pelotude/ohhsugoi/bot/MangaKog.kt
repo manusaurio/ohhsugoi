@@ -1,6 +1,7 @@
-package ar.pelotude.ohhsugoi
+package ar.pelotude.ohhsugoi.bot
 
 import ar.pelotude.ohhsugoi.db.*
+import ar.pelotude.ohhsugoi.isValidURL
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice

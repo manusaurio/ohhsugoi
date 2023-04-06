@@ -1,6 +1,6 @@
 package ar.pelotude.ohhsugoi.koin
 
-import ar.pelotude.ohhsugoi.MangaKogConfiguration
+import ar.pelotude.ohhsugoi.bot.MangaKogConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
 import dev.kord.common.entity.Snowflake
