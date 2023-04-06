@@ -12,7 +12,6 @@ import java.io.IOException
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.*
 import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.extension
@@ -24,27 +23,29 @@ class MangaDatabaseSQLite(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : MangaDatabase {
     private val database: Database = Database.Schema.run {
-        create(driver)
+        kordLogger.info { "Database not specified: Assuming sqlite." }
+
+        val userVersion = driver.executeQuery(
+            null,
+            "PRAGMA user_version;",
+            { c -> c.getLong(0) },
+            0
+        ).value
+
+        kordLogger.info { "Initializing sqlite database. sqlite user_version: $userVersion" }
+
+        if (userVersion == 0L) {
+            kordLogger.info { "Creating database from the scratch..." }
+            create(driver)
+        }
+
         return@run Database(driver)
     }
     private val queries = database.mangaQueries
 
-    init {
-        with(driver) {
-            // TODO: set up database
-        }
-    }
-
     override suspend fun getManga(id: Long): Manga? {
-        val manga = queries.select(id).executeAsOneOrNull()
         return withContext(dispatcher) {
             queries.select(id).executeAsOneOrNull()?.toAPIManga()
-        }
-    }
-
-    override suspend fun getTaggedManga(id: Long): MangaWithTags? {
-        return withContext(dispatcher) {
-            queries.selectMangaWithTags(id).executeAsOneOrNull()?.toAPIMangaWithTags()
         }
     }
 
@@ -104,7 +105,8 @@ class MangaDatabaseSQLite(
      * This function does not request its own transaction and should be called within one.
      */
     private fun TransactionCallbacks.addTags(mangaId: Long, tags: Collection<String>) {
-        for (tag in tags) {
+        val titledTags = tags.map(String::makeTitle).toSet()
+        for (tag in titledTags) {
             val tagId: Long = queries.insertTag(tag).executeAsOne()
             queries.insertTagAssociation(tagId, mangaId)
         }
@@ -137,8 +139,7 @@ class MangaDatabaseSQLite(
                 read = read.sqliteBool()
             ).executeAsOne()
 
-            val titleTags = tags.map(String::makeTitle).toSet()
-            addTags(mangaId, titleTags)
+            addTags(mangaId, tags)
 
             if (imgURLSource != null) {
                 val imgFileName = imgURLSource.downloadImage(mangaId)
@@ -170,6 +171,7 @@ class MangaDatabaseSQLite(
 
             with (changes) {
                 if (imgURLSource != null) {
+                    // TODO
                     val imgFileName = imgURLSource.downloadImage(mangaId)
                 }
 
@@ -182,7 +184,7 @@ class MangaDatabaseSQLite(
                 queries.updateNonNullablesManga(
                     title, description, imgFilePath, link, demographic,
                     volumes, pagesPerVolume, chapters, pagesPerChapter, read?.sqliteBool(),
-                    mangaId,
+                    mangaId
                 )
             }
 
@@ -190,13 +192,17 @@ class MangaDatabaseSQLite(
                 addTags(mangaId, tags)
             }
 
-            changes.let { c ->
-                if (c.tagsToAdd != null && c.tagsToRemove != null) {
-                    (c.tagsToRemove subtract c.tagsToAdd).takeIf(Set<*>::isNotEmpty)?.let { tags ->
-                        queries.removeTagAssociation(mangaId, tags)
-                    }
-                }
+            val tagsToRemove = changes.tagsToRemove?.map(String::makeTitle)
+
+            tagsToRemove?.let { tags ->
+                queries.removeTagAssociation(mangaId, tags)
             }
+        }
+    }
+
+    override suspend fun deleteManga(id: Long): Boolean {
+        return withContext(dispatcher) {
+            queries.deleteManga(id).executeAsOneOrNull() != null
         }
     }
 }

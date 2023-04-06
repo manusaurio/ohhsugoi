@@ -1,8 +1,27 @@
 package ar.pelotude.ohhsugoi
 
 import ar.pelotude.ohhsugoi.db.MangaWithTags
+import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.components.components
+import com.kotlindiscord.kord.extensions.components.ephemeralButton
+import com.kotlindiscord.kord.extensions.types.edit
+import dev.kord.core.entity.User
+import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
+import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
+
+val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
+        "dd/MMMM/YYYY", Locale.forLanguageTag("es-ES")
+)
+
+fun <T : ButtonInteractionCreateEvent> CheckContext<T>.sameUser(userA: User) {
+    val userB = event.interaction.user
+    if (userA != userB) fail()
+}
 
 /**
  * Builds a manga view from the scope of an [EmbedBuilder] and returns it.
@@ -10,7 +29,7 @@ import java.util.*
  * @return The [EmbedBuilder] this function was called from.
  */
 fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
-    title = manga.title
+    title = "[#${manga.id}] ${manga.title}"
 
     manga.imgURLSource?.let { imgURL ->
         thumbnail {
@@ -51,7 +70,39 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
 
     footer {
         text = if (manga.read) "Leído por el club." else "No leído por el club."
+        val zonedDateTime = Instant.ofEpochSecond(manga.insertionDate).atZone(ZoneId.systemDefault())!!
+        val date = formatter.format(zonedDateTime)
+        text = "$text\nAgregado el ${date}"
     }
 
     return this
+}
+
+suspend fun FollowupMessageCreateBuilder.confirmationDialog(
+        content: String,
+        actor: User,
+        cancel: (suspend () -> Any?)? = null,
+        confirm: suspend () -> Any?
+) {
+    this.content = content
+    components {
+        ephemeralButton {
+            label = "Confirmar"
+            check { sameUser(actor) }
+
+            action {
+                confirm()
+            }
+        }
+
+        ephemeralButton {
+            label = "Cancelar"
+            check { sameUser(actor) }
+
+            action {
+                cancel?.invoke()
+                edit { components { } }
+            }
+        }
+    }
 }
