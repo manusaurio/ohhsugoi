@@ -22,6 +22,7 @@ import java.net.URL
 
 class MangaExtension: Extension(), KoinComponent {
     private val db: MangaDatabase by inject()
+    private val config: MangaKogConfiguration by inject()
 
     override val name = "manga"
 
@@ -37,19 +38,19 @@ class MangaExtension: Extension(), KoinComponent {
             .map(String::trim)
             .toSet()
 
-    class AddMangaArgs : Arguments() {
+    inner class AddMangaArgs : Arguments() {
         val title by string {
             name = "título"
             description = "El título del manga"
-            minLength = 1
-            maxLength = 100
+            minLength = config.mangaTitleMinLength
+            maxLength = config.mangaTitleMaxLength
         }
 
         val description by string {
             name = "descripción"
             description ="Descripción del manga"
-            minLength = 20
-            maxLength = 256
+            minLength = config.mangaDescMinLength
+            maxLength = config.mangaDescMaxLength
         }
 
         val link by string {
@@ -101,7 +102,7 @@ class MangaExtension: Extension(), KoinComponent {
         }
     }
 
-    class SearchMangaArgs : Arguments() {
+    inner class SearchMangaArgs : Arguments() {
         val title by optionalString {
             name = "título"
             description = "El título del manga a buscar"
@@ -119,6 +120,82 @@ class MangaExtension: Extension(), KoinComponent {
             demographics.forEach {
                 choice(it, it)
             }
+        }
+    }
+
+    inner class EditArguments: Arguments() {
+        val id by long {
+            name = "id"
+            description = "El id del manga a editar."
+        }
+
+        val title by optionalString {
+            name = "nuevonombre"
+            description = "Nuevo tíutlo del manga"
+            minLength = config.mangaTitleMinLength
+            maxLength = config.mangaTitleMaxLength
+        }
+
+        val description by optionalString {
+            name = "descripción"
+            description = "Nueva descripción"
+            minLength = config.mangaDescMinLength
+            maxLength = config.mangaDescMaxLength
+        }
+
+        val link by optionalString {
+            name = "link"
+            description ="Nuevo link donde comprar o leer el manga"
+        }
+
+        val volumes by optionalLong {
+            name = "tomos"
+            description = "Nueva cantidad de tomos"
+        }
+
+        val pagesPerVolume by optionalLong {
+            name = "páginasportomo"
+            description = "Nueva cantidad de páginas por tomo"
+        }
+
+        val chapters by optionalLong {
+            name = "capítulos"
+            description = "Nueva cantidad de capítulos"
+        }
+
+        val pagesPerChapter by optionalLong {
+            name = "páginasporcapítulo"
+            description = "Nueva cantidad de páginas por capítulo"
+        }
+
+        val demographic by optionalStringChoice {
+            name = "demografía"
+            description = "Nueva demografía del manga"
+            demographics.forEach {
+                choice(it, it)
+            }
+        }
+
+        val addTags by optionalString {
+            name = "nuevostags"
+            description = "Nuevos tags para este título"
+        }
+
+        val removeTags by optionalString {
+            name = "removertags"
+            description = "Tags a ser removidos"
+        }
+
+        val unsetImage by optionalBoolean {
+            name = "sacarimagen"
+            description = "Elimina la imagen del manga."
+        }
+    }
+
+    inner class DeletionArguments: Arguments() {
+        val id by long {
+            name = "id"
+            description = "id del manga a eliminar"
         }
     }
 
@@ -215,82 +292,6 @@ class MangaExtension: Extension(), KoinComponent {
                         content = "Error en los argumentos."
                     }
                 }
-            }
-        }
-
-        class EditArguments: Arguments() {
-            val id by long {
-                name = "id"
-                description = "El id del manga a editar."
-            }
-
-            val title by optionalString {
-                name = "nuevonombre"
-                description = "Nuevo tíutlo del manga"
-                minLength = 1
-                maxLength = 100
-            }
-
-            val description by optionalString {
-                name = "descripción"
-                description = "Nueva descripción"
-                minLength = 20
-                maxLength = 256
-            }
-
-            val link by optionalString {
-                name = "link"
-                description ="Nuevo link donde comprar o leer el manga"
-            }
-
-            val volumes by optionalLong {
-                name = "tomos"
-                description = "Nueva cantidad de tomos"
-            }
-
-            val pagesPerVolume by optionalLong {
-                name = "páginasportomo"
-                description = "Nueva cantidad de páginas por tomo"
-            }
-
-            val chapters by optionalLong {
-                name = "capítulos"
-                description = "Nueva cantidad de capítulos"
-            }
-
-            val pagesPerChapter by optionalLong {
-                name = "páginasporcapítulo"
-                description = "Nueva cantidad de páginas por capítulo"
-            }
-
-            val demographic by optionalStringChoice {
-                name = "demografía"
-                description = "Nueva demografía del manga"
-                demographics.forEach {
-                    choice(it, it)
-                }
-            }
-
-            val addTags by optionalString {
-                name = "nuevostags"
-                description = "Nuevos tags para este título"
-            }
-
-            val removeTags by optionalString {
-                name = "removertags"
-                description = "Tags a ser removidos"
-            }
-
-            val unsetImage by optionalBoolean {
-                name = "sacarimagen"
-                description = "Elimina la imagen del manga."
-            }
-        }
-
-        class DeletionArguments: Arguments() {
-            val id by long {
-                name = "id"
-                description = "id del manga a eliminar"
             }
         }
 
