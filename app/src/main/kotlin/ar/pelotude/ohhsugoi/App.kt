@@ -15,9 +15,13 @@ suspend fun main() {
         i18n {
             defaultLocale = forLanguageTag("es")
         }
-    }
 
-    getKoin().loadModules(listOf(botModule))
+        hooks {
+            afterKoinSetup {
+                getKoin().loadModules(listOf(botModule))
+            }
+        }
+    }
 
     kordEx.start()
 }

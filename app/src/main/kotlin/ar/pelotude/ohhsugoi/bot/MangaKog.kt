@@ -13,7 +13,6 @@ import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import dev.kord.common.Color
-import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Attachment
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
