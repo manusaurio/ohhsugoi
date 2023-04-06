@@ -7,6 +7,7 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.extensions.*
+import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
@@ -16,11 +17,10 @@ import dev.kord.core.entity.Attachment
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.net.URL
 
-class MangaExtension: Extension(), KoinComponent {
+class MangaExtension: Extension(), KordExKoinComponent {
     private val db: MangaDatabase by inject()
     private val config: MangaKogConfiguration by inject()
 
