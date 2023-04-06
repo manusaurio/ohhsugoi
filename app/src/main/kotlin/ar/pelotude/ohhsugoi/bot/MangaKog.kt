@@ -204,7 +204,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
         publicSlashCommand(::SearchMangaArgs) {
             name = "buscar"
             description = "Busca un manga por nombre, tag, y/o demografía"
-            guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
+            guild(config.guild)
 
             action {
                 val (title, tag, demographic) = with (arguments) { Triple(title, tag, demographic) }
@@ -245,7 +245,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
         publicSlashCommand(::AddMangaArgs) {
             name = "agregar"
             description = "Agrega un manga con los datos proporcionados"
-            guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
+            guild(config.guild)
 
             action {
                 val tags = arguments.tags.toTagSet()
@@ -299,7 +299,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
         publicSlashCommand(::EditArguments) {
             name = "editar"
             description = "Modifica o elimina los campos de un manga"
-            guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
+            guild(config.guild)
 
             action {
                 val flags = mutableListOf<UpdateFlags>()
