@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi
+package ar.pelotude.ohhsugoi.bot
 
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext

@@ -1,27 +1,28 @@
-package ar.pelotude.ohhsugoi
+package ar.pelotude.ohhsugoi.bot
 
 import ar.pelotude.ohhsugoi.db.*
+import ar.pelotude.ohhsugoi.isValidURL
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.extensions.*
+import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import dev.kord.common.Color
-import dev.kord.common.entity.Snowflake
 import dev.kord.core.entity.Attachment
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.net.URL
 
-class MangaExtension: Extension(), KoinComponent {
+class MangaExtension: Extension(), KordExKoinComponent {
     private val db: MangaDatabase by inject()
+    private val config: MangaKogConfiguration by inject()
 
     override val name = "manga"
 
@@ -37,19 +38,19 @@ class MangaExtension: Extension(), KoinComponent {
             .map(String::trim)
             .toSet()
 
-    class AddMangaArgs : Arguments() {
+    inner class AddMangaArgs : Arguments() {
         val title by string {
             name = "título"
             description = "El título del manga"
-            minLength = 1
-            maxLength = 100
+            minLength = config.mangaTitleMinLength
+            maxLength = config.mangaTitleMaxLength
         }
 
         val description by string {
             name = "descripción"
             description ="Descripción del manga"
-            minLength = 20
-            maxLength = 256
+            minLength = config.mangaDescMinLength
+            maxLength = config.mangaDescMaxLength
         }
 
         val link by string {
@@ -101,7 +102,7 @@ class MangaExtension: Extension(), KoinComponent {
         }
     }
 
-    class SearchMangaArgs : Arguments() {
+    inner class SearchMangaArgs : Arguments() {
         val title by optionalString {
             name = "título"
             description = "El título del manga a buscar"
@@ -122,11 +123,87 @@ class MangaExtension: Extension(), KoinComponent {
         }
     }
 
+    inner class EditArguments: Arguments() {
+        val id by long {
+            name = "id"
+            description = "El id del manga a editar."
+        }
+
+        val title by optionalString {
+            name = "nuevonombre"
+            description = "Nuevo tíutlo del manga"
+            minLength = config.mangaTitleMinLength
+            maxLength = config.mangaTitleMaxLength
+        }
+
+        val description by optionalString {
+            name = "descripción"
+            description = "Nueva descripción"
+            minLength = config.mangaDescMinLength
+            maxLength = config.mangaDescMaxLength
+        }
+
+        val link by optionalString {
+            name = "link"
+            description ="Nuevo link donde comprar o leer el manga"
+        }
+
+        val volumes by optionalLong {
+            name = "tomos"
+            description = "Nueva cantidad de tomos"
+        }
+
+        val pagesPerVolume by optionalLong {
+            name = "páginasportomo"
+            description = "Nueva cantidad de páginas por tomo"
+        }
+
+        val chapters by optionalLong {
+            name = "capítulos"
+            description = "Nueva cantidad de capítulos"
+        }
+
+        val pagesPerChapter by optionalLong {
+            name = "páginasporcapítulo"
+            description = "Nueva cantidad de páginas por capítulo"
+        }
+
+        val demographic by optionalStringChoice {
+            name = "demografía"
+            description = "Nueva demografía del manga"
+            demographics.forEach {
+                choice(it, it)
+            }
+        }
+
+        val addTags by optionalString {
+            name = "nuevostags"
+            description = "Nuevos tags para este título"
+        }
+
+        val removeTags by optionalString {
+            name = "removertags"
+            description = "Tags a ser removidos"
+        }
+
+        val unsetImage by optionalBoolean {
+            name = "sacarimagen"
+            description = "Elimina la imagen del manga."
+        }
+    }
+
+    inner class DeletionArguments: Arguments() {
+        val id by long {
+            name = "id"
+            description = "id del manga a eliminar"
+        }
+    }
+
     override suspend fun setup() {
         publicSlashCommand(::SearchMangaArgs) {
             name = "buscar"
             description = "Busca un manga por nombre, tag, y/o demografía"
-            guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
+            guild(config.guild)
 
             action {
                 val (title, tag, demographic) = with (arguments) { Triple(title, tag, demographic) }
@@ -167,7 +244,7 @@ class MangaExtension: Extension(), KoinComponent {
         publicSlashCommand(::AddMangaArgs) {
             name = "agregar"
             description = "Agrega un manga con los datos proporcionados"
-            guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
+            guild(config.guild)
 
             action {
                 val tags = arguments.tags.toTagSet()
@@ -218,86 +295,10 @@ class MangaExtension: Extension(), KoinComponent {
             }
         }
 
-        class EditArguments: Arguments() {
-            val id by long {
-                name = "id"
-                description = "El id del manga a editar."
-            }
-
-            val title by optionalString {
-                name = "nuevonombre"
-                description = "Nuevo tíutlo del manga"
-                minLength = 1
-                maxLength = 100
-            }
-
-            val description by optionalString {
-                name = "descripción"
-                description = "Nueva descripción"
-                minLength = 20
-                maxLength = 256
-            }
-
-            val link by optionalString {
-                name = "link"
-                description ="Nuevo link donde comprar o leer el manga"
-            }
-
-            val volumes by optionalLong {
-                name = "tomos"
-                description = "Nueva cantidad de tomos"
-            }
-
-            val pagesPerVolume by optionalLong {
-                name = "páginasportomo"
-                description = "Nueva cantidad de páginas por tomo"
-            }
-
-            val chapters by optionalLong {
-                name = "capítulos"
-                description = "Nueva cantidad de capítulos"
-            }
-
-            val pagesPerChapter by optionalLong {
-                name = "páginasporcapítulo"
-                description = "Nueva cantidad de páginas por capítulo"
-            }
-
-            val demographic by optionalStringChoice {
-                name = "demografía"
-                description = "Nueva demografía del manga"
-                demographics.forEach {
-                    choice(it, it)
-                }
-            }
-
-            val addTags by optionalString {
-                name = "nuevostags"
-                description = "Nuevos tags para este título"
-            }
-
-            val removeTags by optionalString {
-                name = "removertags"
-                description = "Tags a ser removidos"
-            }
-
-            val unsetImage by optionalBoolean {
-                name = "sacarimagen"
-                description = "Elimina la imagen del manga."
-            }
-        }
-
-        class DeletionArguments: Arguments() {
-            val id by long {
-                name = "id"
-                description = "id del manga a eliminar"
-            }
-        }
-
         publicSlashCommand(::EditArguments) {
             name = "editar"
             description = "Modifica o elimina los campos de un manga"
-            guild(Snowflake(System.getenv("KORD_WEEB_SERVER")!!))
+            guild(config.guild)
 
             action {
                 val flags = mutableListOf<UpdateFlags>()
