@@ -6,8 +6,7 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.components.components
-import com.kotlindiscord.kord.extensions.extensions.Extension
-import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
+import com.kotlindiscord.kord.extensions.extensions.*
 import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
@@ -288,6 +287,13 @@ class MangaExtension: Extension(), KoinComponent {
             }
         }
 
+        class DeletionArguments: Arguments() {
+            val id by long {
+                name = "id"
+                description = "id del manga a eliminar"
+            }
+        }
+
         publicSlashCommand(::EditArguments) {
             name = "editar"
             description = "Modifica o elimina los campos de un manga"
@@ -308,12 +314,11 @@ class MangaExtension: Extension(), KoinComponent {
                 }
 
                 respond {
-                    confirmMangaEdition(
+                    confirmationDialog(
                             "¿Confirmas la edición sobre ${currentManga.title}?",
                             user.asUser(),
                     ) {
-                        edit { components {  } }
-
+                        edit { components { } }
                         with (arguments) {
                             val mangaChanges = MangaChanges(
                                     id=id,
@@ -342,6 +347,36 @@ class MangaExtension: Extension(), KoinComponent {
                                     "Hubo un error descargando la imagen."
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        publicSlashCommand(::DeletionArguments) {
+            name = "borrar"
+            description = "Elimina una entrada de la base de datos"
+
+            action {
+                val manga = db.getManga(arguments.id)
+
+                manga ?: run {
+                    respond {
+                        content = "La id ${arguments.id} no pudo ser encontrada"
+                    }
+                    return@action
+                }
+
+                respond {
+                    confirmationDialog(
+                        "¿Confirmas la eliminación de **${manga.title}**?",
+                        user.asUser()
+                    ) {
+                        edit { components { } }
+                        respond {
+                            db.deleteManga(manga.id)
+                            content = if (db.deleteManga(manga.id)) "Eliminado **${manga.title}**"
+                            else "No se pudo eliminar ${manga.title}."
                         }
                     }
                 }

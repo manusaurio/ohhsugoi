@@ -93,8 +93,6 @@ data class MangaChanges(
 interface MangaDatabase {
     suspend fun getManga(id: Long): Manga?
 
-    suspend fun getTaggedManga(id: Long): MangaWithTags?
-
     suspend fun searchManga(
         text: String? = null,
         tagFilter: String? = null,
@@ -131,6 +129,14 @@ interface MangaDatabase {
      * @throws [DownloadException] if a [MangaChanges.imgURLSource]
      * was submitted and couldn't be downloaded */
     suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags)
+
+    /**
+     * Deletes a manga entry.
+     *
+     * @return[Boolean] `true` if something was found and deleted, `false` if
+     * nothing to delete was found
+     */
+    suspend fun deleteManga(id: Long): Boolean
 }
 
 enum class UpdateFlags {

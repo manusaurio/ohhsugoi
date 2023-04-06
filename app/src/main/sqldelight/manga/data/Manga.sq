@@ -44,14 +44,20 @@ BEGIN
     UPDATE mangafts SET title = new.title WHERE manga_id = new.id;
 END;
 
+PRAGMA user_version = 1;
+
 select:
 SELECT *
 FROM manga
-WHERE id = ?;
+WHERE id = ? AND deleted = 0;
 
 insert:
 INSERT INTO manga(title, description, link, img_URL, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id;
+
+deleteManga:
+UPDATE manga SET deleted = 1 WHERE id = :manga_id AND deleted = 0
 RETURNING id;
 
 insertTag:
@@ -71,7 +77,7 @@ selectTagsFromManga:
 SELECT tag.title FROM tag
 JOIN manga_tag_association AS ass ON tag.id = ass.tag_id
 JOIN manga ON ass.manga_id = manga.id
-WHERE manga.id = :manga_id;
+WHERE manga.id = :manga_id AND manga.deleted = 0;
 
 updateNonNullablesManga:
 UPDATE manga
@@ -86,31 +92,31 @@ SET
   chapters = CASE WHEN :chapters IS NULL THEN chapters ELSE :chapters END,
   pages_per_chapter = CASE WHEN :pages_per_chapter IS NULL THEN pages_per_chapter ELSE :pages_per_chapter END,
   read = CASE WHEN :read IS NULL THEN read ELSE :read END
-WHERE id = :manga_id AND insertion_date = :insertion_date;
+WHERE id = :manga_id AND deleted = 0;
 
 unsetImgURL:
 UPDATE manga SET img_URL = NULL
-WHERE id = :manga_id AND insertion_date = :insertion_date;
+WHERE id = :manga_id AND deleted = 0;
 
 unsetLink:
 UPDATE manga SET link = NULL
-WHERE id = :manga_id AND insertion_date = :insertion_date;
+WHERE id = :manga_id AND deleted = 0;
 
 unsetVolumes:
 UPDATE manga SET volumes = NULL
-WHERE id = :manga_id AND insertion_date = :insertion_date;
+WHERE id = :manga_id AND deleted = 0;
 
 unsetPagesPerVolume:
 UPDATE manga SET pages_per_volume = NULL
-WHERE id = :manga_id AND insertion_date = :insertion_date;
+WHERE id = :manga_id AND deleted = 0;
 
 unsetChapters:
 UPDATE manga SET chapters = NULL
-WHERE id = :manga_id AND insertion_date = :insertion_date;
+WHERE id = :manga_id  AND deleted = 0;
 
 unsetPagesPerChapter:
 UPDATE manga SET pages_per_chapter = NULL
-WHERE id = :manga_id AND insertion_date = :insertion_date;
+WHERE id = :manga_id AND deleted = 0 AND deleted = 0;
 
 getLastInsertRowId:
 SELECT last_insert_rowid();
@@ -121,7 +127,7 @@ SELECT tag.id FROM tag WHERE tag.title = :tagName;
 updateMangaImgURL:
 UPDATE manga
 SET img_URL = :imgURL
-WHERE manga.id = :mangaId;
+WHERE manga.id = :mangaId AND deleted = 0;
 
 searchMangaWithTagsFTS:
 SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
@@ -129,23 +135,18 @@ LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
 LEFT JOIN tag ON tag.id = ass.tag_id
 JOIN mangafts ON mangafts.manga_id = manga.id
 WHERE (mangafts MATCH :terms)
+    AND (manga.deleted = 0)
     AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
 GROUP BY manga.id
 HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
 LIMIT :limit;
 
--- TODO: unify the two following queries
 searchMangaWithTags:
 SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
 LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
 LEFT JOIN tag ON tag.id = ass.tag_id
-WHERE (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
+WHERE manga.deleted = 0
+  AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
 GROUP BY manga.id
-HAVING MAX(tag.title = :tag_filter) = TRUE OR :tag_filter IS NULL
+HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
 LIMIT :limit;
-
-selectMangaWithTags:
-SELECT manga.*, GROUP_CONCAT(tag.title) tags FROM manga
-LEFT JOIN manga_tag_association AS ass ON ass.manga_id = manga.id
-LEFT JOIN tag ON tag.id = ass.tag_id
-WHERE manga.id = :manga_id;

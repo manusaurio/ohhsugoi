@@ -44,15 +44,8 @@ class MangaDatabaseSQLite(
     private val queries = database.mangaQueries
 
     override suspend fun getManga(id: Long): Manga? {
-        val manga = queries.select(id).executeAsOneOrNull()
         return withContext(dispatcher) {
             queries.select(id).executeAsOneOrNull()?.toAPIManga()
-        }
-    }
-
-    override suspend fun getTaggedManga(id: Long): MangaWithTags? {
-        return withContext(dispatcher) {
-            queries.selectMangaWithTags(id).executeAsOneOrNull()?.toAPIMangaWithTags()
         }
     }
 
@@ -163,22 +156,22 @@ class MangaDatabaseSQLite(
 
     override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {
         val mangaId = changes.id
-        val insertionDate = changes.insertionDate
 
         queries.transaction {
             flags.forEach { flag ->
                 when (flag) {
-                    UpdateFlags.UNSET_IMG_URL -> queries.unsetImgURL(mangaId, insertionDate)
-                    UpdateFlags.UNSET_LINK -> queries.unsetLink(mangaId, insertionDate)
-                    UpdateFlags.UNSET_VOLUMES -> queries.unsetVolumes(mangaId, insertionDate)
-                    UpdateFlags.UNSET_PPV -> queries.unsetPagesPerVolume(mangaId, insertionDate)
-                    UpdateFlags.UNSET_CHAPTERS -> queries.unsetChapters(mangaId, insertionDate)
-                    UpdateFlags.UNSET_PPC -> queries.unsetPagesPerChapter(mangaId, insertionDate)
+                    UpdateFlags.UNSET_IMG_URL -> queries.unsetImgURL(mangaId)
+                    UpdateFlags.UNSET_LINK -> queries.unsetLink(mangaId)
+                    UpdateFlags.UNSET_VOLUMES -> queries.unsetVolumes(mangaId)
+                    UpdateFlags.UNSET_PPV -> queries.unsetPagesPerVolume(mangaId)
+                    UpdateFlags.UNSET_CHAPTERS -> queries.unsetChapters(mangaId)
+                    UpdateFlags.UNSET_PPC -> queries.unsetPagesPerChapter(mangaId)
                 }
             }
 
             with (changes) {
                 if (imgURLSource != null) {
+                    // TODO
                     val imgFileName = imgURLSource.downloadImage(mangaId)
                 }
 
@@ -191,7 +184,7 @@ class MangaDatabaseSQLite(
                 queries.updateNonNullablesManga(
                     title, description, imgFilePath, link, demographic,
                     volumes, pagesPerVolume, chapters, pagesPerChapter, read?.sqliteBool(),
-                    mangaId, insertionDate
+                    mangaId
                 )
             }
 
@@ -204,6 +197,12 @@ class MangaDatabaseSQLite(
             tagsToRemove?.let { tags ->
                 queries.removeTagAssociation(mangaId, tags)
             }
+        }
+    }
+
+    override suspend fun deleteManga(id: Long): Boolean {
+        return withContext(dispatcher) {
+            queries.deleteManga(id).executeAsOneOrNull() != null
         }
     }
 }

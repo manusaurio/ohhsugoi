@@ -14,11 +14,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-
 val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
         "dd/MMMM/YYYY", Locale.forLanguageTag("es-ES")
 )
-
 
 fun <T : ButtonInteractionCreateEvent> CheckContext<T>.sameUser(userA: User) {
     val userB = event.interaction.user
@@ -80,7 +78,7 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
     return this
 }
 
-suspend fun FollowupMessageCreateBuilder.confirmMangaEdition(
+suspend fun FollowupMessageCreateBuilder.confirmationDialog(
         content: String,
         actor: User,
         cancel: (suspend () -> Any?)? = null,
@@ -103,11 +101,7 @@ suspend fun FollowupMessageCreateBuilder.confirmMangaEdition(
 
             action {
                 cancel?.invoke()
-                edit {
-                    components {
-
-                    }
-                }
+                edit { components { } }
             }
         }
     }
