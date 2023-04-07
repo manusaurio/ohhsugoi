@@ -17,6 +17,9 @@ dependencies {
     implementation("app.cash.sqldelight", "primitive-adapters", "2.0.0-alpha05")
     implementation("org.slf4j", "slf4j-simple","2.0.7")
     implementation("com.kotlindiscord.kord.extensions", "kord-extensions", "1.5.6")
+
+    implementation("com.twelvemonkeys.imageio", "imageio-jpeg", "3.9.4")
+    implementation("com.twelvemonkeys.imageio", "imageio-webp", "3.9.4")
 }
 
 application {

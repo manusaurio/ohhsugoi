@@ -4,24 +4,26 @@ import app.cash.sqldelight.TransactionCallbacks
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.Database
+import ar.pelotude.ohhsugoi.downloadMangaCover
 import ar.pelotude.ohhsugoi.makeTitle
+import ar.pelotude.ohhsugoi.saveAsJpg
 import ar.pelotude.ohhsugoi.uuidString
+import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import kotlinx.coroutines.*
 import manga.data.SearchMangaWithTagsFTS
 import java.io.IOException
 import java.net.URL
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.io.path.Path
 import kotlin.io.path.div
-import kotlin.io.path.extension
 import dev.kord.core.kordLogger
 import manga.data.SearchMangaWithTags
+import org.koin.core.component.inject
 
 class MangaDatabaseSQLite(
     private val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY),
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
-) : MangaDatabase {
+) : MangaDatabase, KordExKoinComponent {
+    internal val dbConfig: DatabaseConfiguration by inject()
+
     private val database: Database = Database.Schema.run {
         kordLogger.info { "Database not specified: Assuming sqlite." }
 
@@ -70,31 +72,30 @@ class MangaDatabaseSQLite(
     }
 
     /**
-     * Downloads the content from the passed [URL], assuming in the process
+     * Downloads the content from a [URL], assuming in the process
      * it's an image file, then randomizes a name for it based on [mangaId]
-     * with the prefix "$[mangaId]-"
+     * with the prefix "$[mangaId]-". The image is stored in the directory
+     * specified by the configuration.
      *
-     * @param[mangaId] the id of the manga that the image represents
-     * @return A [String] containing the full path to the downloaded image,
-     * or null if the file couldn't be downloaded,
+     * @param[imgSource] Source of the image to be downloaded
+     * @param[mangaId] The id of the manga that the image represents
+     * @return A [String] containing filename of the downloaded image,
+     * or null if the file couldn't be downloaded
      * @throws DownloadException if an I/O error occurs when downloading the image
      */
-    private fun URL.downloadImage(mangaId: Long): String {
-        // TODO: compress/resize, remove exif metadata
+    private fun storeMangaCover(imgSource: URL, mangaId: Long): String {
+        val mangaFileName = "$mangaId-${uuidString()}.jpg"
+        val destiny = dbConfig.mangaImageDirectory / mangaFileName
 
-        val extension = Path.of(path).extension
-        val mangaFileName = "$mangaId-${uuidString()}.${extension}"
-        val destiny = Path(System.getenv("MANGA_IMAGES_PATH")) / mangaFileName
-
-        this.openStream().buffered().use { stream ->
-            try {
-                Files.copy(stream, destiny)
-            } catch(e: IOException) {
-                throw DownloadException("The image could not be downloaded", e)
-            }
-            kordLogger.info { "Added image: $mangaFileName " }
-            return mangaFileName
+        try {
+            downloadMangaCover(imgSource, dbConfig.mangaCoversWidth, dbConfig.mangaCoversHeight)
+                    .saveAsJpg(destiny.toFile())
+        } catch(e: IOException) {
+            throw DownloadException("The image could not be downloaded", e)
         }
+        kordLogger.info { "Added image: $mangaFileName " }
+
+        return mangaFileName
     }
 
     /**
@@ -142,7 +143,7 @@ class MangaDatabaseSQLite(
             addTags(mangaId, tags)
 
             if (imgURLSource != null) {
-                val imgFileName = imgURLSource.downloadImage(mangaId)
+                val imgFileName = storeMangaCover(imgURLSource, mangaId)
                 queries.updateMangaImgURL(imgFileName, mangaId)
             }
 
@@ -170,16 +171,10 @@ class MangaDatabaseSQLite(
             }
 
             with (changes) {
-                if (imgURLSource != null) {
-                    // TODO
-                    val imgFileName = imgURLSource.downloadImage(mangaId)
-                }
-
-                val imgFilePath = imgURLSource?.let {
+                val imgFilePath = if (imgURLSource != null) {
                     // throws DownloadException
-                    val fileName = it.downloadImage(mangaId)
-                    fileName
-                }
+                    storeMangaCover(imgURLSource, mangaId)
+                } else null
 
                 queries.updateNonNullablesManga(
                     title, description, imgFilePath, link, demographic,
