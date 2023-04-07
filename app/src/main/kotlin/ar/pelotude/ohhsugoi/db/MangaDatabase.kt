@@ -8,19 +8,22 @@ import ar.pelotude.ohhsugoi.downloadMangaCover
 import ar.pelotude.ohhsugoi.makeTitle
 import ar.pelotude.ohhsugoi.saveAsJpg
 import ar.pelotude.ohhsugoi.uuidString
+import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import kotlinx.coroutines.*
 import manga.data.SearchMangaWithTagsFTS
 import java.io.IOException
 import java.net.URL
-import kotlin.io.path.Path
 import kotlin.io.path.div
 import dev.kord.core.kordLogger
 import manga.data.SearchMangaWithTags
+import org.koin.core.component.inject
 
 class MangaDatabaseSQLite(
     private val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY),
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
-) : MangaDatabase {
+) : MangaDatabase, KordExKoinComponent {
+    internal val dbConfig: DatabaseConfiguration by inject()
+
     private val database: Database = Database.Schema.run {
         kordLogger.info { "Database not specified: Assuming sqlite." }
 
@@ -82,11 +85,10 @@ class MangaDatabaseSQLite(
      */
     private fun storeMangaCover(imgSource: URL, mangaId: Long): String {
         val mangaFileName = "$mangaId-${uuidString()}.jpg"
-        val destiny = Path(System.getenv("MANGA_IMAGE_DIRECTORY")) / mangaFileName
+        val destiny = dbConfig.mangaImageDirectory / mangaFileName
 
         try {
-            // TODO: Change targetWidth and targetHeight
-            downloadMangaCover(imgSource, 225, 340)
+            downloadMangaCover(imgSource, dbConfig.mangaCoversWidth, dbConfig.mangaCoversHeight)
                     .saveAsJpg(destiny.toFile())
         } catch(e: IOException) {
             throw DownloadException("The image could not be downloaded", e)

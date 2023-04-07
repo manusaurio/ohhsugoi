@@ -1,14 +1,21 @@
 package ar.pelotude.ohhsugoi.db
 
+import com.kotlindiscord.kord.extensions.utils.getKoin
 import io.ktor.http.*
 import manga.data.SearchMangaWithTagsFTS as MangaWithTagsFTSSQLD
 import manga.data.SearchMangaWithTags as MangaWithTagsSQLD
 import java.net.URL
 import manga.data.Manga as MangaSQLD
 
+val koin = getKoin()
+
 internal fun storedImgURL(fileName: String): URL {
-    val url = URLBuilder(System.getenv("WEBPAGE"))
-            .appendPathSegments(System.getenv("MANGA_URL_PATH"), fileName)
+    val config: DatabaseConfiguration = koin.get()
+    val webpage = config.webpage
+    val subDirectory = config.mangaCoversUrlPath
+
+    val url = URLBuilder(webpage)
+            .appendPathSegments(subDirectory, fileName)
             .build()
 
     // TODO: Change URLs to ktor Urls here and everywhere else
