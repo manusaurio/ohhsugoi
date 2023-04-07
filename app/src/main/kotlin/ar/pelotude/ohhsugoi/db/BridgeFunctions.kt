@@ -1,9 +1,19 @@
 package ar.pelotude.ohhsugoi.db
 
+import io.ktor.http.*
 import manga.data.SearchMangaWithTagsFTS as MangaWithTagsFTSSQLD
 import manga.data.SearchMangaWithTags as MangaWithTagsSQLD
 import java.net.URL
 import manga.data.Manga as MangaSQLD
+
+internal fun storedImgURL(fileName: String): URL {
+    val url = URLBuilder(System.getenv("WEBPAGE"))
+            .appendPathSegments(System.getenv("MANGA_URL_PATH"), fileName)
+            .build()
+
+    // TODO: Change URLs to ktor Urls here and everywhere else
+    return URL(url.toString())
+}
 
 internal fun MangaSQLD.toAPIManga(): Manga {
     return MangaData(
@@ -12,7 +22,7 @@ internal fun MangaSQLD.toAPIManga(): Manga {
         title=title,
         description=description,
         link=link,
-        imgURLSource=img_URL?.let { URL(img_URL) },
+        imgURLSource=img_URL?.let { storedImgURL(it) },
         chapters=chapters,
         pagesPerChapter=pages_per_chapter,
         volumes=volumes,
@@ -30,7 +40,7 @@ internal fun MangaWithTagsSQLD.toAPIMangaWithTags(): MangaWithTags {
             title=title,
             description=description,
             link=link,
-            imgURLSource=img_URL?.let { URL(img_URL) },
+            imgURLSource=img_URL?.let { storedImgURL(it) },
             chapters=chapters,
             pagesPerChapter=pages_per_chapter,
             volumes=volumes,
@@ -50,7 +60,7 @@ internal fun MangaWithTagsFTSSQLD.toAPIMangaWithTags(): MangaWithTags {
             title=title,
             description=description,
             link=link,
-            imgURLSource=img_URL?.let { URL(img_URL) },
+            imgURLSource=img_URL?.let { storedImgURL(it) },
             chapters=chapters,
             pagesPerChapter=pages_per_chapter,
             volumes=volumes,
