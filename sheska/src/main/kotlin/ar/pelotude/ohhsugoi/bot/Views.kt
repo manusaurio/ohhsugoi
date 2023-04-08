@@ -13,6 +13,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
         "dd/MMMM/YYYY", Locale.forLanguageTag("es-ES")
@@ -86,12 +87,18 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
 ) {
     this.content = content
     components {
+        val done = AtomicBoolean()
+
         ephemeralButton {
             label = "Confirmar"
             check { sameUser(actor) }
 
             action {
-                confirm()
+                if (!done.getAndSet(true)) {
+                    confirm()
+                    edit { components { } }
+                    this@components.cancel()
+                }
             }
         }
 
@@ -100,8 +107,11 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
             check { sameUser(actor) }
 
             action {
-                cancel?.invoke()
-                edit { components { } }
+                if (!done.getAndSet(true)) {
+                    cancel?.invoke()
+                    edit { components { } }
+                    this@components.cancel()
+                }
             }
         }
     }

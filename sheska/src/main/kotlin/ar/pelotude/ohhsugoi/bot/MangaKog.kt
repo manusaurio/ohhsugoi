@@ -466,7 +466,6 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         "¿Confirmas la eliminación de **${manga.title}**?",
                         user.asUser()
                     ) {
-                        edit { components { } }
                         respond {
                             db.deleteManga(manga.id)
                             content = if (db.deleteManga(manga.id)) "Eliminado **${manga.title}**"
