@@ -8,6 +8,7 @@ import dev.kord.common.entity.Snowflake
 import io.ktor.http.*
 import org.koin.dsl.module
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 
 val botModule = module {
     single<MangaDatabase> { MangaDatabaseSQLite() }
@@ -20,13 +21,15 @@ val botModule = module {
             256,
         )
     }
+
     single<DatabaseConfiguration> {
         DatabaseConfiguration(
-                225,
-                340,
-                Url(System.getenv("WEBPAGE")),
-                Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
-                System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
+            225,
+            340,
+            Url(System.getenv("WEBPAGE")),
+            Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
+            System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
+            Path.of(System.getenv("SQLITE_FILE_PATH")!!).apply { parent.createDirectories() }.toString(),
         )
     }
 }

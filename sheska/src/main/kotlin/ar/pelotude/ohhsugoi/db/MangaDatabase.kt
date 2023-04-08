@@ -19,10 +19,10 @@ import manga.data.SearchMangaWithTags
 import org.koin.core.component.inject
 
 class MangaDatabaseSQLite(
-    private val driver: SqlDriver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY),
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : MangaDatabase, KordExKoinComponent {
     internal val dbConfig: DatabaseConfiguration by inject()
+    private val driver: SqlDriver = JdbcSqliteDriver("jdbc:sqlite:${dbConfig.sqlitePath}")
 
     private val database: Database = Database.Schema.run {
         kordLogger.info { "Database not specified: Assuming sqlite." }

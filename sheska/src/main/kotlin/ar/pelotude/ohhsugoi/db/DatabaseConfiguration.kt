@@ -9,4 +9,5 @@ class DatabaseConfiguration(
         val webpage: Url,
         val mangaImageDirectory: Path,
         val mangaCoversUrlPath: String,
+        val sqlitePath: String,
 )
