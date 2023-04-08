@@ -3,16 +3,12 @@ package ar.pelotude.ohhsugoi
 import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io.File
-import java.io.OutputStream
 import java.net.URL
-import java.nio.file.Path
 import java.util.*
 import javax.imageio.IIOImage
 import javax.imageio.ImageIO
 import javax.imageio.ImageWriteParam
 import javax.imageio.stream.FileImageOutputStream
-import javax.imageio.stream.ImageOutputStream
-import javax.imageio.stream.ImageOutputStreamImpl
 
 /** This isn't ideal but I'm not gonna add another dependency or write something fancy
  * for something meant to be used among trustworthy people */

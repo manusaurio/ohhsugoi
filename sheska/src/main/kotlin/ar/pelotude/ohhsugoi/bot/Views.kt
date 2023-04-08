@@ -72,7 +72,7 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
         text = if (manga.read) "Leído por el club." else "No leído por el club."
         val zonedDateTime = Instant.ofEpochSecond(manga.insertionDate).atZone(ZoneId.systemDefault())!!
         val date = formatter.format(zonedDateTime)
-        text = "$text\nAgregado el ${date}"
+        text = "$text\nAgregado el $date"
     }
 
     return this

@@ -2,6 +2,7 @@ package ar.pelotude.ohhsugoi.bot
 
 import ar.pelotude.ohhsugoi.db.*
 import ar.pelotude.ohhsugoi.isValidURL
+import ar.pelotude.ohhsugoi.makeTitle
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
@@ -33,7 +34,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
     private fun String.toTagSet() =
             this.split(',')
             .filter(String::isNotBlank)
-            .map(String::trim)
+            .map { it.trim().makeTitle() }
             .toSet()
 
     inner class AddMangaArgs : Arguments() {
@@ -275,7 +276,11 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     mangaList.isEmpty() -> respond {
                         embed {
                             this.title = "Sin resultados"
-                            description = "No se encontró nada similar a ${arguments.title}"
+                            description = "No se encontró nada similar a lo buscado:\n" +
+                                    (arguments.title?.let { "\n__Título__: $it" } ?: "")  +
+                                    (arguments.demographic?.let { "\n__Demografía__: $it" } ?: "") +
+                                    (arguments.tag?.let { "\n__Tag__: $it" } ?: "")
+
                             color = Color(200, 0, 0)
                         }
                     }
@@ -311,29 +316,46 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     ppv * volumes / chapters
                 else -1
 
-                val image: Attachment? = arguments.image
-
-                val isValid: Boolean = ppc > 0
+                val validPpc: Boolean = ppc > 0
 
                 respond {
-                    if (isValid) try {
-                        db.addManga(
+                    if (validPpc) try {
+                        val imgURLSource: URL? = arguments.image?.let { URL(it.url) }
+                        val tags = arguments.tags.toTagSet()
+
+                        val id = db.addManga(
                                 title = arguments.title,
                                 description = arguments.description,
-                                imgURLSource = image?.let { URL(it.url) },
+                                imgURLSource = imgURLSource,
                                 link = arguments.link,
                                 demographic = arguments.demographic,
                                 volumes = volumes,
                                 pagesPerVolume = ppv,
                                 chapters = chapters,
                                 pagesPerChapter = ppc,
-                                tags = arguments.tags.toTagSet(),
+                                tags = arguments.tags.toTagSet(), // TODO: Make tags be saved in lowercase in db
                                 read = false
                         )
                         content = "Agregado exitosamente."
-                        } catch (e: DownloadException) {
+                        embed {
+                            // TODO: rewrite this mess! Also,
+                            //  the image used here is EPHEMERAL so
+                            //  we shouldn't rely on it
+                            val a = arguments
+                            mangaView(
+                                MangaWithTagsData(
+                                    MangaData(
+                                        id, a.title, java.time.Instant.now().epochSecond, a.description, imgURLSource,
+                                        a.link, a.demographic, a.volumes, a.pagesPerVolume, a.chapters, a.pagesPerChapter,
+                                        false
+                                    ),
+                                    tags
+                                )
+                            )
+                        }
+                    } catch (e: DownloadException) {
                             content = "Error al agregar."
-                        } else {
+                    } else {
                         content = "**Error**: Especifica la cantidad de páginas por capítulo o valores en otros argumentos que me permitan computarlo!"
                     }
                 }
@@ -365,31 +387,58 @@ class MangaExtension: Extension(), KordExKoinComponent {
                             user.asUser(),
                     ) {
                         edit { components { } }
-                        with (arguments) {
-                            val mangaChanges = MangaChanges(
-                                    id=id,
-                                    title=title,
-                                    description=description,
-                                    imgURLSource=null,
-                                    link=link,
-                                    volumes=volumes,
-                                    pagesPerVolume=pagesPerVolume,
-                                    chapters=chapters,
-                                    pagesPerChapter=pagesPerChapter,
-                                    demographic=demographic,
-                                    tagsToAdd=addTags?.toTagSet(),
-                                    tagsToRemove=removeTags?.toTagSet(),
-                                    read=null,
-                            )
 
-                            respond {
-                                content = try {
-                                    db.updateManga(mangaChanges, *flags.toTypedArray())
-                                    kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
-                                    "**${currentManga.title}** editado exitosamente."
-                                } catch(e: DownloadException) {
-                                    kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
-                                    "Hubo un error descargando la imagen."
+                        val mangaChanges = with(arguments) {
+                            MangaChanges(
+                                id=id,
+                                title=title,
+                                description=description,
+                                imgURLSource=arguments.image?.let { URL(it.url) },
+                                link=link,
+                                volumes=volumes,
+                                pagesPerVolume=pagesPerVolume,
+                                chapters=chapters,
+                                pagesPerChapter=pagesPerChapter,
+                                demographic=demographic,
+                                tagsToAdd=addTags?.toTagSet(),
+                                tagsToRemove=removeTags?.toTagSet(),
+                                read=null,
+                            )
+                        }
+
+                        respond {
+                            try {
+                                db.updateManga(mangaChanges, *flags.toTypedArray())
+                                kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
+
+                                // TODO: move to Views
+                                embed {
+                                    title = "Editado [#${currentManga.id}] ${currentManga.title}"
+                                    color = Color(0, 200, 0)
+
+                                    description = "__Campos modificados__:\n\n" +
+                                            listOf<Pair<String, *>>(
+                                                ("Título" to arguments.title),
+                                                ("Descripción" to arguments.description),
+                                                ("Imagen" to arguments.image),
+                                                ("Link" to arguments.link),
+                                                ("Tomos" to arguments.volumes),
+                                                ("Páginas por capítulo" to arguments.pagesPerChapter),
+                                                ("Demografía" to arguments.demographic),
+                                                ("Tags (nuevos)" to arguments.addTags),
+                                                ("Tags (removidos)" to arguments.removeTags)
+                                            )
+                                                .filter { it.second != null }
+                                                .joinToString("\n") { it.first }
+                                }
+                            } catch (e: DownloadException) {
+                                kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
+
+                                embed {
+                                    title = "**Error**"
+                                    description = "Hubo un problema descargando la imagen"
+
+                                    color = Color(200, 0, 0)
                                 }
                             }
                         }
