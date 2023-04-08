@@ -3,6 +3,7 @@ package ar.pelotude.ohhsugoi.bot
 import ar.pelotude.ohhsugoi.db.*
 import ar.pelotude.ohhsugoi.isValidURL
 import ar.pelotude.ohhsugoi.makeTitle
+import com.kotlindiscord.kord.extensions.checks.hasRole
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
@@ -308,6 +309,10 @@ class MangaExtension: Extension(), KordExKoinComponent {
             description = "Agrega un manga con los datos proporcionados"
             guild(config.guild)
 
+            check {
+                hasRole(config.allowedRole)
+            }
+            
             action {
                 val chapters = arguments.chapters
                 val volumes = arguments.volumes
@@ -367,6 +372,10 @@ class MangaExtension: Extension(), KordExKoinComponent {
             name = "editar"
             description = "Modifica o elimina los campos de un manga"
             guild(config.guild)
+
+            check {
+                hasRole(config.allowedRole)
+            }
 
             action {
                 val flags = mutableListOf<UpdateFlags>()
@@ -451,6 +460,11 @@ class MangaExtension: Extension(), KordExKoinComponent {
         publicSlashCommand(::DeletionArguments) {
             name = "borrar"
             description = "Elimina una entrada de la base de datos"
+            guild(config.guild)
+
+            check {
+                hasRole(config.allowedRole)
+            }
 
             action {
                 val manga = db.getManga(arguments.id)
