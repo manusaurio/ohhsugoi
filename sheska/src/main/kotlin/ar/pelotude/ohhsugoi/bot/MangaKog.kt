@@ -270,7 +270,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     return@action
                 }
 
-                val mangaList = db.searchManga(title, tag, demographic, 3)
+                val mangaList = db.searchManga(title, tag, demographic, 15)
 
                 when {
                     mangaList.isEmpty() -> respond {
@@ -292,6 +292,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     }
 
                     else -> respondingPaginator {
+                        timeoutSeconds = 120
                         mangaList.forEach { manga ->
                             page {
                                 mangaView(manga)
