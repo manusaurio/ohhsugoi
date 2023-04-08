@@ -75,7 +75,6 @@ data class MangaWithTagsData(
  */
 data class MangaChanges(
     val id: Long,
-    val insertionDate: Long,
     val title: String? = null,
     val description: String? = null,
     val imgURLSource: URL? = null,

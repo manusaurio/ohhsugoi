@@ -323,7 +323,6 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         with (arguments) {
                             val mangaChanges = MangaChanges(
                                     id=id,
-                                    insertionDate=currentManga.insertionDate,
                                     title=title,
                                     description=description,
                                     imgURLSource=null,
