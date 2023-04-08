@@ -96,7 +96,6 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
             action {
                 if (!done.getAndSet(true)) {
                     confirm()
-                    edit { components { } }
                     this@components.cancel()
                 }
             }
@@ -109,7 +108,6 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
             action {
                 if (!done.getAndSet(true)) {
                     cancel?.invoke()
-                    edit { components { } }
                     this@components.cancel()
                 }
             }
