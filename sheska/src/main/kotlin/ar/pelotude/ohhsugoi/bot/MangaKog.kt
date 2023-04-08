@@ -340,7 +340,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                             respond {
                                 content = try {
                                     db.updateManga(mangaChanges, *flags.toTypedArray())
-                                    kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${mangaChanges.title})" }
+                                    kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
                                     "**${currentManga.title}** editado exitosamente."
                                 } catch(e: DownloadException) {
                                     kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
