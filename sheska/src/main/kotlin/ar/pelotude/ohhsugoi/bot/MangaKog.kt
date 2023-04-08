@@ -7,7 +7,8 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.components.components
-import com.kotlindiscord.kord.extensions.extensions.*
+import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
@@ -26,11 +27,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
     override val name = "manga"
 
-    private fun URL.seemsSafe() =
-            protocol == "https" && host in listOf("media.discordapp.net", "cdn.discordapp.com")
-
     private fun Attachment?.isValidImage(): Boolean =
-            this == null || isImage && size < 8000000 && URL(url).seemsSafe()
+            this == null || isImage && size < 8000000
 
     private fun String.toTagSet() =
             this.split(',')
@@ -44,6 +42,12 @@ class MangaExtension: Extension(), KordExKoinComponent {
             description = "El título del manga"
             minLength = config.mangaTitleMinLength
             maxLength = config.mangaTitleMaxLength
+
+            validate {
+                failIf("El título está en blanco po") {
+                    value.isBlank()
+                }
+            }
         }
 
         val description by string {
@@ -51,11 +55,23 @@ class MangaExtension: Extension(), KordExKoinComponent {
             description ="Descripción del manga"
             minLength = config.mangaDescMinLength
             maxLength = config.mangaDescMaxLength
+
+            validate {
+                failIf("Ahí no hay descripción po") {
+                    value.isBlank()
+                }
+            }
         }
 
         val link by string {
             name = "link"
             description ="Link para comprar o leer el manga"
+
+            validate {
+                failIfNot("El link no es válido") {
+                    value.isValidURL()
+                }
+            }
         }
 
         val demographic by stringChoice {
@@ -70,6 +86,11 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val tags by string {
             name = "tags"
             description ="Géneros del manga. Dividir por coma: \"tag uno, tag dos\""
+            validate {
+                failIf("No hay tags po sacowea") {
+                    value.split(',').all(String::isBlank)
+                }
+            }
         }
 
         val chapters by long {
@@ -99,6 +120,11 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val image by optionalAttachment {
             name = "imagen"
             description = "Portada del manga"
+            validate {
+                failIfNot("El archivo excede el límite de peso") {
+                    value.isValidImage()
+                }
+            }
         }
     }
 
@@ -136,6 +162,16 @@ class MangaExtension: Extension(), KordExKoinComponent {
             maxLength = config.mangaTitleMaxLength
         }
 
+        val image by optionalAttachment {
+            name = "imagen"
+            description = "Nueva imagen del manga"
+            validate {
+                failIfNot("El archivo excede el límite de peso") {
+                    value.isValidImage()
+                }
+            }
+        }
+
         val description by optionalString {
             name = "descripción"
             description = "Nueva descripción"
@@ -146,26 +182,36 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val link by optionalString {
             name = "link"
             description ="Nuevo link donde comprar o leer el manga"
+
+            validate {
+                failIfNot("El link no es válido") {
+                    value!!.isValidURL()
+                }
+            }
         }
 
         val volumes by optionalLong {
             name = "tomos"
             description = "Nueva cantidad de tomos"
+            minValue = 1
         }
 
         val pagesPerVolume by optionalLong {
             name = "páginasportomo"
             description = "Nueva cantidad de páginas por tomo"
+            minValue = 1
         }
 
         val chapters by optionalLong {
             name = "capítulos"
             description = "Nueva cantidad de capítulos"
+            minValue = 1
         }
 
         val pagesPerChapter by optionalLong {
             name = "páginasporcapítulo"
             description = "Nueva cantidad de páginas por capítulo"
+            minValue = 1
         }
 
         val demographic by optionalStringChoice {
@@ -179,11 +225,21 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val addTags by optionalString {
             name = "nuevostags"
             description = "Nuevos tags para este título"
+            validate {
+                failIf("No hay tags po sacowea") {
+                    value!!.split(',').all(String::isBlank)
+                }
+            }
         }
 
         val removeTags by optionalString {
             name = "removertags"
             description = "Tags a ser removidos"
+            validate {
+                failIf("No hay tags po sacowea") {
+                    value!!.split(',').all(String::isBlank)
+                }
+            }
         }
 
         val unsetImage by optionalBoolean {
@@ -247,8 +303,6 @@ class MangaExtension: Extension(), KordExKoinComponent {
             guild(config.guild)
 
             action {
-                val tags = arguments.tags.toTagSet()
-
                 val chapters = arguments.chapters
                 val volumes = arguments.volumes
                 val ppv = arguments.pagesPerVolume
@@ -258,16 +312,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 else -1
 
                 val image: Attachment? = arguments.image
-                val validImage: Boolean = image.isValidImage()
 
-                val isValid: Boolean = with(arguments) {
-                    title.isNotBlank()
-                            && description.isNotBlank()
-                            && link.isValidURL()
-                            && tags.isNotEmpty()
-                            && ppc > 0
-                            && validImage
-                }
+                val isValid: Boolean = ppc > 0
 
                 respond {
                     if (isValid) try {
@@ -281,15 +327,14 @@ class MangaExtension: Extension(), KordExKoinComponent {
                                 pagesPerVolume = ppv,
                                 chapters = chapters,
                                 pagesPerChapter = ppc,
-                                tags = tags,
+                                tags = arguments.tags.toTagSet(),
                                 read = false
                         )
                         content = "Agregado exitosamente."
                         } catch (e: DownloadException) {
                             content = "Error al agregar."
                         } else {
-                        // TODO: Point out the reason(s) the arguments validation didn't pass after trying to submit an entry.
-                        content = "Error en los argumentos."
+                        content = "**Error**: Especifica la cantidad de páginas por capítulo o valores en otros argumentos que me permitan computarlo!"
                     }
                 }
             }
