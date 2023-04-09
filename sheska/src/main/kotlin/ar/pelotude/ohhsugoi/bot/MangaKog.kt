@@ -68,6 +68,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val link by string {
             name = "link"
             description ="Link para comprar o leer el manga"
+            maxLength = config.mangaLinkMaxLength
 
             validate {
                 failIfNot("El link no es válido") {
@@ -184,6 +185,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val link by optionalString {
             name = "link"
             description ="Nuevo link donde comprar o leer el manga"
+            maxLength = config.mangaLinkMaxLength
 
             validate {
                 failIfNot("El link no es válido") {

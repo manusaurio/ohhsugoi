@@ -16,10 +16,11 @@ val botModule = module {
         MangaKogConfiguration(
             Snowflake(System.getenv("KORD_WEEB_SERVER")!!),
             Snowflake(System.getenv("KORD_WEEB_ROLE")!!),
+            256,
             1,
             100,
             20,
-            256,
+            512,
         )
     }
 
