@@ -49,7 +49,7 @@ PRAGMA user_version = 1;
 select:
 SELECT *
 FROM manga
-WHERE id = ? AND deleted = 0;
+WHERE id IN ? AND deleted = 0;
 
 insert:
 INSERT INTO manga(title, description, link, img_URL, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)

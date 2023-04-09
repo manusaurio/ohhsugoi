@@ -17,6 +17,7 @@ import kotlin.io.path.div
 import dev.kord.core.kordLogger
 import manga.data.SearchMangaWithTags
 import org.koin.core.component.inject
+import manga.data.Manga as MangaSQLD
 
 class MangaDatabaseSQLite(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -45,9 +46,16 @@ class MangaDatabaseSQLite(
     }
     private val queries = database.mangaQueries
 
+
     override suspend fun getManga(id: Long): Manga? {
         return withContext(dispatcher) {
-            queries.select(id).executeAsOneOrNull()?.toAPIManga()
+            queries.select(listOf(id)).executeAsOneOrNull()?.toAPIManga()
+        }
+    }
+    
+    override suspend fun getMangas(vararg ids: Long): Collection<Manga> {
+        return withContext(dispatcher) {
+            queries.select(ids.toList()).executeAsList().map(MangaSQLD::toAPIManga)
         }
     }
 
