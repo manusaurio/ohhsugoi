@@ -396,8 +396,6 @@ class MangaExtension: Extension(), KordExKoinComponent {
                             "¿Confirmas la edición sobre ${currentManga.title}?",
                             user.asUser(),
                     ) {
-                        edit { components { } }
-
                         val mangaChanges = with(arguments) {
                             MangaChanges(
                                 id=id,
