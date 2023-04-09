@@ -4,7 +4,6 @@ import ar.pelotude.ohhsugoi.db.MangaWithTags
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.components.ephemeralButton
-import com.kotlindiscord.kord.extensions.types.edit
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
@@ -57,6 +56,11 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
     field {
         name = "Páginas por tomo"
         value = manga.pagesPerVolume?.let { "~$it" } ?: "?"
+        inline = true
+    }
+    field {
+        name = "Capítulos"
+        value = manga.chapters?.toString() ?: "?"
         inline = true
     }
     field {
