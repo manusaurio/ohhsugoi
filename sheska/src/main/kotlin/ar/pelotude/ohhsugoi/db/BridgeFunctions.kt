@@ -2,6 +2,7 @@ package ar.pelotude.ohhsugoi.db
 
 import com.kotlindiscord.kord.extensions.utils.getKoin
 import io.ktor.http.*
+import manga.data.SelectMangaWithTags as SelectedMangaWithTagsSQLD
 import manga.data.SearchMangaWithTagsFTS as MangaWithTagsFTSSQLD
 import manga.data.SearchMangaWithTags as MangaWithTagsSQLD
 import java.net.URL
@@ -36,6 +37,26 @@ internal fun MangaSQLD.toAPIManga(): Manga {
         pagesPerVolume=pages_per_volume,
         demographic=demographics,
         read=read.boolean,
+    )
+}
+
+internal fun SelectedMangaWithTagsSQLD.toAPIMangaWithTags(): MangaWithTags {
+    return MangaWithTagsData(
+        MangaData(
+            id=id,
+            insertionDate=insertion_date,
+            title=title,
+            description=description,
+            link=link,
+            imgURLSource=img_URL?.let { storedImgURL(it) },
+            chapters=chapters,
+            pagesPerChapter=pages_per_chapter,
+            volumes=volumes,
+            pagesPerVolume=pages_per_volume,
+            demographic=demographics,
+            read=read.boolean,
+        ),
+        tags?.toTagSet() ?: setOf()
     )
 }
 

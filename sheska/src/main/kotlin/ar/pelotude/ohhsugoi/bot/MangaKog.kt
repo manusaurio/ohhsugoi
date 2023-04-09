@@ -8,11 +8,9 @@ import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
-import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
-import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import dev.kord.common.Color
@@ -148,6 +146,22 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
             demographics.forEach {
                 choice(it, it)
+            }
+        }
+    }
+
+    inner class GroupMangaEntriesArguments: Arguments() {
+        val ids by string {
+            name = "ids"
+            description = "ids de los mangas a listar, separadas por coma. Por ejemplo: 3, 5, 1"
+            maxLength = 50
+
+            validate {
+                failIfNot("Sólo lista hasta 20 ids separadas por coma") {
+                    val values = value.split(",").map(String::trim).mapNotNull(String::toLongOrNull)
+
+                    values.size in 1..20
+                }
             }
         }
     }
@@ -289,16 +303,60 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     }
 
                     mangaList.size == 1 -> respond {
-                        embeds.add(
-                                EmbedBuilder().mangaView(mangaList.first())
-                        )
+                        embeds.add(EmbedBuilder().mangaView(mangaList.first()))
+                    }
+
+                    mangaList.size < 5 -> respond {
+                        embed {
+                            this.title = "Encontrado:"
+                            description = mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
+                            color = Color(0, 200, 0)
+                        }
+                    }
+
+                    else -> respondingPaginator {
+                        val chunks = mangaList.chunked(5)
+
+                        timeoutSeconds = 120
+                        chunks.forEach { chunk ->
+                            page {
+                                this.title = "Encontrado:"
+                                description = chunk.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
+                                color = Color(0, 200, 0)
+                            }
+                        }
+                    }.send()
+                }
+            }
+        }
+
+        publicSlashCommand(::GroupMangaEntriesArguments) {
+            name = "listar"
+            description = "Agrupa múltiples mangas en un paginador"
+            guild(config.guild)
+
+            action {
+                val ids = arguments.ids.split(",").mapNotNull { it.trim().toLongOrNull() }.toLongArray()
+
+                val mangaList = db.getMangas(*ids).toList()
+
+                when {
+                    mangaList.isEmpty() -> respond {
+                        embed {
+                            title = "Sin resultados"
+                            description = "No se encontró nada similar a lo buscado"
+                        }
+                    }
+
+                    mangaList.size == 1 -> respond {
+                        embeds.add(EmbedBuilder().mangaView(mangaList.first()))
                     }
 
                     else -> respondingPaginator {
                         timeoutSeconds = 120
-                        mangaList.forEach { manga ->
+                        mangaList.map { it }.forEach { manga ->
                             page {
-                                mangaView(manga)
+                                mangaView((manga))
                             }
                         }
                     }.send()

@@ -90,9 +90,9 @@ data class MangaChanges(
 )
 
 interface MangaDatabase {
-    suspend fun getManga(id: Long): Manga?
+    suspend fun getManga(id: Long): MangaWithTags?
 
-    suspend fun getMangas(vararg ids: Long): Collection<Manga>
+    suspend fun getMangas(vararg ids: Long): Collection<MangaWithTags>
 
     suspend fun searchManga(
         text: String? = null,

@@ -46,10 +46,12 @@ END;
 
 PRAGMA user_version = 1;
 
-select:
-SELECT *
-FROM manga
-WHERE id IN ? AND deleted = 0;
+selectMangaWithTags:
+SELECT m.*, GROUP_CONCAT(tag.title) AS tags FROM manga m
+LEFT JOIN manga_tag_association ass ON ass.manga_id = m.id
+LEFT JOIN tag ON tag.id = ass.tag_id
+WHERE m.id IN ? AND m.deleted = 0
+GROUP BY m.id;
 
 insert:
 INSERT INTO manga(title, description, link, img_URL, demographics, volumes, pages_per_volume, chapters, pages_per_chapter, read)
