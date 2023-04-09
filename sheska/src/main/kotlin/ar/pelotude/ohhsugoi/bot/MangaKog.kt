@@ -434,6 +434,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                                                 ("Link" to arguments.link),
                                                 ("Tomos" to arguments.volumes),
                                                 ("Páginas por capítulo" to arguments.pagesPerChapter),
+                                                ("Páginas por tomo" to arguments.pagesPerVolume),
                                                 ("Demografía" to arguments.demographic),
                                                 ("Tags (nuevos)" to arguments.addTags),
                                                 ("Tags (removidos)" to arguments.removeTags)
