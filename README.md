@@ -10,7 +10,7 @@ Environment variables:
 | `KORD_TOKEN`                    | Discord bot secret token                                               |
 | `KORD_WEEB_ROLE`                | Snowflake of the role allowed to add and edit manga entries            |
 | `KORD_WEEB_SERVER`              | Snowflake of the Discord server the bot it's intended to work in       |
-| `WEBPAGE`                       | URL of the fronted website where images are stored                     |
+| `WEBPAGE`                       | URL of the front end website where images are stored                   |
 | `MANGA_COVERS_URL_SUBDIRECTORY` | Path of the URL where images can be found (i.e.: `/static/manga`)      |
 | `MANGA_IMAGE_DIRECTORY`         | Path where images should be saved to (i.e. `/home/myuser/mangacovers`) |
 | `SQLITE_FILE_PATH`              | Path to the sqlite file                                                |
