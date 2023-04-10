@@ -442,6 +442,15 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 arguments.unsetImage?.let { flags.add(UpdateFlags.UNSET_IMG_URL) }
 
+                val somethingChanged = arguments.args.any { it.converter.parsed != null && it.displayName != "id" }
+
+                if (!somethingChanged) {
+                    respond {
+                        content = "No has especificado ningún cambio."
+                    }
+                    return@action
+                }
+
                 val currentManga = db.getManga(arguments.id)
 
                 currentManga ?: run {
