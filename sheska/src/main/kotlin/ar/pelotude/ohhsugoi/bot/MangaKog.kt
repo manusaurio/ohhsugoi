@@ -287,16 +287,17 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     return@action
                 }
 
+                val filterDescription = (title?.let { "__Título__: $title\n" } ?: "") +
+                        (tag?.let { "__Tag__: $tag\n" } ?: "") +
+                        (demographic?.let { "__Demografía__: $demographic\n" } ?: "")
+
                 val mangaList = db.searchManga(title, tag, demographic, 15)
 
                 when {
                     mangaList.isEmpty() -> respond {
                         embed {
                             this.title = "Sin resultados"
-                            description = "No se encontró nada similar a lo buscado:\n" +
-                                    (arguments.title?.let { "\n__Título__: $it" } ?: "")  +
-                                    (arguments.demographic?.let { "\n__Demografía__: $it" } ?: "") +
-                                    (arguments.tag?.let { "\n__Tag__: $it" } ?: "")
+                            description = "No se encontró nada similar a lo buscado:\n\n$filterDescription"
 
                             color = Color(200, 0, 0)
                         }
@@ -308,8 +309,9 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                     mangaList.size < 5 -> respond {
                         embed {
-                            this.title = "Encontrado:"
-                            description = mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
+                            this.title = "Encontrados ${mangaList.size} resultados\n\n"
+                            description = filterDescription +
+                                    mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
                             color = Color(0, 200, 0)
                         }
                     }
@@ -320,8 +322,9 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         timeoutSeconds = 120
                         chunks.forEach { chunk ->
                             page {
-                                this.title = "Encontrado:"
-                                description = chunk.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
+                                this.title = "Encontrados ${mangaList.size} resultados\n\n"
+                                description = filterDescription +
+                                        chunk.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
                                 color = Color(0, 200, 0)
                             }
                         }
