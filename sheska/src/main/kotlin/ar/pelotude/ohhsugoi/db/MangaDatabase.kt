@@ -9,15 +9,14 @@ import ar.pelotude.ohhsugoi.makeTitle
 import ar.pelotude.ohhsugoi.saveAsJpg
 import ar.pelotude.ohhsugoi.uuidString
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
-import kotlinx.coroutines.*
-import manga.data.SearchMangaWithTagsFTS
+import dev.kord.core.kordLogger
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 import java.io.IOException
 import java.net.URL
 import kotlin.io.path.div
-import dev.kord.core.kordLogger
-import manga.data.SearchMangaWithTags
-import org.koin.core.component.inject
-import manga.data.SelectMangaWithTags as MangaSQLD
 
 class MangaDatabaseSQLite(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -48,13 +47,13 @@ class MangaDatabaseSQLite(
 
     override suspend fun getManga(id: Long): MangaWithTags? {
         return withContext(dispatcher) {
-            queries.selectMangaWithTags(listOf(id)).executeAsOneOrNull()?.toAPIMangaWithTags()
+            queries.selectMangaWithTags(listOf(id), ::mangaSQLDmapper).executeAsOneOrNull()
         }
     }
 
     override suspend fun getMangas(vararg ids: Long): Collection<MangaWithTags> {
         return withContext(dispatcher) {
-            queries.selectMangaWithTags(ids.toList()).executeAsList().map(MangaSQLD::toAPIMangaWithTags)
+            queries.selectMangaWithTags(ids.toList(), ::mangaSQLDmapper).executeAsList()
         }
     }
 
@@ -70,11 +69,12 @@ class MangaDatabaseSQLite(
                 "title: $text",
                 demographicFilter,
                 titleTagFilter,
-                limit
-            ).executeAsList().map(SearchMangaWithTagsFTS::toAPIMangaWithTags)
+                limit,
+                ::mangaSQLDmapper
+            ).executeAsList()
             else queries.searchMangaWithTags(
-                demographicFilter, titleTagFilter, limit
-            ).executeAsList().map(SearchMangaWithTags::toAPIMangaWithTags)
+                demographicFilter, titleTagFilter, limit, ::mangaSQLDmapper
+            ).executeAsList()
         }
     }
 
