@@ -4,6 +4,7 @@ import ar.pelotude.ohhsugoi.db.MangaWithTags
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.components.ephemeralButton
+import com.kotlindiscord.kord.extensions.types.edit
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
@@ -101,6 +102,7 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
                 if (!done.getAndSet(true)) {
                     confirm()
                     this@components.cancel()
+                    edit { components { } }
                 }
             }
         }
@@ -113,6 +115,7 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
                 if (!done.getAndSet(true)) {
                     cancel?.invoke()
                     this@components.cancel()
+                    edit { components { } }
                 }
             }
         }
