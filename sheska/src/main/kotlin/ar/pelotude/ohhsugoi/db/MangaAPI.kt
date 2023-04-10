@@ -14,7 +14,7 @@ val demographics = setOf<String>(
         "Shounen",
         "Shoujo",
         "Jousei",
-        "Komodo",
+        "Kodomo",
         "Hobby",
         "Otros",
 )
