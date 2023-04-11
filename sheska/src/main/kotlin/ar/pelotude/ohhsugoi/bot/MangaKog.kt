@@ -387,33 +387,37 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 val validPpc: Boolean = ppc > 0
 
-                respond {
-                    if (validPpc) try {
-                        val imgURLSource: URL? = arguments.image?.let { URL(it.url) }
-                        val tags = arguments.tags.toTagSet()
+                if (!validPpc) {
+                    respondWithError(
+                        "Especifica la cantidad de páginas por capítulo o valores" +
+                                " en otros argumentos que me permitan computarlo!"
+                    )
+                } else try {
+                    val imgURLSource: URL? = arguments.image?.let { URL(it.url) }
 
-                        val insertedManga = db.addManga(
-                                title = arguments.title,
-                                description = arguments.description,
-                                imgURLSource = imgURLSource,
-                                link = arguments.link,
-                                demographic = arguments.demographic,
-                                volumes = volumes,
-                                pagesPerVolume = ppv,
-                                chapters = chapters,
-                                pagesPerChapter = ppc,
-                                tags = arguments.tags.toTagSet(), // TODO: Make tags be saved in lowercase in db
-                                read = false
-                        )
+                    val insertedManga = db.addManga(
+                        title = arguments.title,
+                        description = arguments.description,
+                        imgURLSource = imgURLSource,
+                        link = arguments.link,
+                        demographic = arguments.demographic,
+                        volumes = volumes,
+                        pagesPerVolume = ppv,
+                        chapters = chapters,
+                        pagesPerChapter = ppc,
+                        tags = arguments.tags.toTagSet(), // TODO: Make tags be saved in lowercase in db
+                        read = false
+                    )
+
+                    respond {
                         content = "Agregado exitosamente."
+
                         embed {
                             mangaView(insertedManga)
                         }
-                    } catch (e: DownloadException) {
-                            content = "Error al agregar."
-                    } else {
-                        content = "**Error**: Especifica la cantidad de páginas por capítulo o valores en otros argumentos que me permitan computarlo!"
                     }
+                } catch (e: DownloadException) {
+                    respondWithError("Error al agregar")
                 }
             }
         }
