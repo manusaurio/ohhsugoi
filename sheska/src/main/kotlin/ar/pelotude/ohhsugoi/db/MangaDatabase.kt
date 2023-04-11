@@ -149,15 +149,17 @@ class MangaDatabaseSQLite(
 
             addTags(mangaId, tags)
 
-            if (imgURLSource != null) {
-                val imgFileName = storeMangaCover(imgURLSource, mangaId)
-                queries.updateMangaImgURL(imgFileName, mangaId)
+            afterCommit {
+                kordLogger.info { "Inserted $title at $mangaId." }
             }
 
             mangaId
         }
 
-        kordLogger.info { "Inserted $title at $insertionId." }
+        if (imgURLSource != null) {
+            val imgFileName = storeMangaCover(imgURLSource, insertionId)
+            queries.updateMangaImgURL(imgFileName, insertionId)
+        }
 
         return insertionId
     }
