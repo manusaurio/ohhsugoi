@@ -116,6 +116,28 @@ suspend fun PublicSlashCommandContext<MangaExtension.EditArguments, *>.respondWi
     }
 }
 
+suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(title: String = "**Info**", description: String) {
+    respond {
+        embed {
+            this.title = title
+            this.description = description
+
+            color = Color(200, 100, 0)
+        }
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: String) {
+    respond {
+        embed {
+            title = "**Éxito**"
+            this.description = description
+
+            color = Color(0, 200, 0)
+        }
+    }
+}
+
 suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String) {
     respond {
         embed {
