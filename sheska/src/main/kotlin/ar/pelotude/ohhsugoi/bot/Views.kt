@@ -100,9 +100,9 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
 
             action {
                 if (!done.getAndSet(true)) {
-                    confirm()
                     this@components.cancel()
-                    edit { components { } }
+                    confirm()
+                    edit { components = mutableListOf() }
                 }
             }
         }
@@ -113,9 +113,9 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
 
             action {
                 if (!done.getAndSet(true)) {
-                    cancel?.invoke()
                     this@components.cancel()
-                    edit { components { } }
+                    cancel?.invoke()
+                    edit { components = mutableListOf() }
                 }
             }
         }
