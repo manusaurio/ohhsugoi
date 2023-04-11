@@ -392,7 +392,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         val imgURLSource: URL? = arguments.image?.let { URL(it.url) }
                         val tags = arguments.tags.toTagSet()
 
-                        val id = db.addManga(
+                        val insertedManga = db.addManga(
                                 title = arguments.title,
                                 description = arguments.description,
                                 imgURLSource = imgURLSource,
@@ -407,20 +407,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         )
                         content = "Agregado exitosamente."
                         embed {
-                            // TODO: rewrite this mess! Also,
-                            //  the image used here is EPHEMERAL so
-                            //  we shouldn't rely on it
-                            val a = arguments
-                            mangaView(
-                                MangaWithTagsData(
-                                    MangaData(
-                                        id, a.title, java.time.Instant.now().epochSecond, a.description, imgURLSource,
-                                        a.link, a.demographic, a.volumes, a.pagesPerVolume, a.chapters, a.pagesPerChapter,
-                                        false
-                                    ),
-                                    tags
-                                )
-                            )
+                            mangaView(insertedManga)
                         }
                     } catch (e: DownloadException) {
                             content = "Error al agregar."

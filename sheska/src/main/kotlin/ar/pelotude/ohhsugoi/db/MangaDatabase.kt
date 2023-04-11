@@ -132,7 +132,7 @@ class MangaDatabaseSQLite(
         pagesPerChapter: Long?,
         tags: Set<String>,
         read: Boolean,
-    ): Long {
+    ): MangaWithTags {
         val insertionId = database.transactionWithResult {
             val mangaId = queries.insert(
                 title = title,
@@ -161,7 +161,7 @@ class MangaDatabaseSQLite(
             queries.updateMangaImgURL(imgFileName, insertionId)
         }
 
-        return insertionId
+        return queries.selectMangaWithTags(listOf(1), ::mangaSQLDmapper).executeAsOne()
     }
 
     override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {

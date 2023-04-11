@@ -120,7 +120,7 @@ interface MangaDatabase {
         pagesPerChapter: Long? = null,
         tags: Set<String> = setOf(),
         read: Boolean = false,
-    ): Long
+    ): MangaWithTags
 
     /**
      * Updates a manga by applying changes onto its current data,
