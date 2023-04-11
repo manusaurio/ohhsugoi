@@ -473,42 +473,15 @@ class MangaExtension: Extension(), KordExKoinComponent {
                             )
                         }
 
-                        respond {
-                            try {
-                                db.updateManga(mangaChanges, *flags.toTypedArray())
-                                kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
+                        try {
+                            db.updateManga(mangaChanges, *flags.toTypedArray())
+                            kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
 
-                                // TODO: move to Views
-                                embed {
-                                    title = "Editado [#${currentManga.id}] ${currentManga.title}"
-                                    color = Color(0, 200, 0)
+                            respondWithChanges(currentManga)
+                        } catch (e: DownloadException) {
+                            kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
 
-                                    description = "__Campos modificados__:\n\n" +
-                                            listOf<Pair<String, *>>(
-                                                ("Título" to arguments.title),
-                                                ("Descripción" to arguments.description),
-                                                ("Imagen" to arguments.image),
-                                                ("Link" to arguments.link),
-                                                ("Tomos" to arguments.volumes),
-                                                ("Páginas por capítulo" to arguments.pagesPerChapter),
-                                                ("Páginas por tomo" to arguments.pagesPerVolume),
-                                                ("Demografía" to arguments.demographic),
-                                                ("Tags (nuevos)" to arguments.addTags),
-                                                ("Tags (removidos)" to arguments.removeTags)
-                                            )
-                                                .filter { it.second != null }
-                                                .joinToString("\n") { it.first }
-                                }
-                            } catch (e: DownloadException) {
-                                kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
-
-                                embed {
-                                    title = "**Error**"
-                                    description = "Hubo un problema descargando la imagen"
-
-                                    color = Color(200, 0, 0)
-                                }
-                            }
+                            respondWithError("Hubo un problema descargando la imagen")
                         }
                     }
                 }

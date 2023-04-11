@@ -2,13 +2,18 @@ package ar.pelotude.ohhsugoi.bot
 
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.EphemeralSlashCommandContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.components.ephemeralButton
 import com.kotlindiscord.kord.extensions.types.edit
+import com.kotlindiscord.kord.extensions.types.respond
+import dev.kord.common.Color
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
+import dev.kord.rest.builder.message.create.embed
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -82,6 +87,44 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
     }
 
     return this
+}
+
+suspend fun PublicSlashCommandContext<MangaExtension.EditArguments, *>.respondWithChanges(
+    previousManga: MangaWithTags
+) {
+    respond {
+        embed {
+            title = "Editado [#${previousManga.id}] ${previousManga.title}"
+            color = Color(0, 200, 0)
+
+            description = "__Campos modificados__:\n\n" +
+                    listOf<Pair<String, *>>(
+                        ("Título" to arguments.title),
+                        ("Descripción" to arguments.description),
+                        ("Imagen" to arguments.image),
+                        ("Link" to arguments.link),
+                        ("Tomos" to arguments.volumes),
+                        ("Páginas por capítulo" to arguments.pagesPerChapter),
+                        ("Páginas por tomo" to arguments.pagesPerVolume),
+                        ("Demografía" to arguments.demographic),
+                        ("Tags (nuevos)" to arguments.addTags),
+                        ("Tags (removidos)" to arguments.removeTags)
+                    )
+                        .filter { it.second != null }
+                        .joinToString("\n") { it.first }
+        }
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String) {
+    respond {
+        embed {
+            title = "**Error**"
+            this.description = description
+
+            color = Color(200, 0, 0)
+        }
+    }
 }
 
 suspend fun FollowupMessageCreateBuilder.confirmationDialog(
