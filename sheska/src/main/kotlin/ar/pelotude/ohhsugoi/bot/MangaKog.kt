@@ -344,12 +344,10 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val mangaList = db.getMangas(*ids).toList()
 
                 when {
-                    mangaList.isEmpty() -> respond {
-                        embed {
-                            title = "Sin resultados"
-                            description = "No se encontró nada similar a lo buscado"
-                        }
-                    }
+                    mangaList.isEmpty() -> respondWithInfo(
+                        "Sin resultados",
+                        "No se encontró nada similar a lo buscado"
+                    )
 
                     mangaList.size == 1 -> respond {
                         embeds.add(EmbedBuilder().mangaView(mangaList.first()))
@@ -439,18 +437,16 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val somethingChanged = arguments.args.any { it.converter.parsed != null && it.displayName != "id" }
 
                 if (!somethingChanged) {
-                    respond {
-                        content = "No has especificado ningún cambio."
-                    }
+                    respondWithError("No has especificado ningún cambio.")
+
                     return@action
                 }
 
                 val currentManga = db.getManga(arguments.id)
 
                 currentManga ?: run {
-                    respond {
-                        content = "La id ${arguments.id} no pudo ser encontrada"
-                    }
+                    respondWithError("La id ${arguments.id} no pudo ser encontrada")
+
                     return@action
                 }
 
@@ -505,9 +501,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val manga = db.getManga(arguments.id)
 
                 manga ?: run {
-                    respond {
-                        content = "La id ${arguments.id} no pudo ser encontrada"
-                    }
+                    respondWithError("La id ${arguments.id} no pudo ser encontrada")
+
                     return@action
                 }
 
@@ -516,11 +511,10 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         "¿Confirmas la eliminación de **${manga.title}**?",
                         user.asUser()
                     ) {
-                        respond {
-                            db.deleteManga(manga.id)
-                            content = if (db.deleteManga(manga.id)) "Eliminado **${manga.title}**"
-                            else "No se pudo eliminar ${manga.title}."
-                        }
+                        val successfullyDeleted = db.deleteManga(manga.id)
+
+                        if (successfullyDeleted) respondWithSuccess("Eliminado **${manga.title}**")
+                        else respondWithError("No se pudo eliminar ${manga.title}")
                     }
                 }
             }
