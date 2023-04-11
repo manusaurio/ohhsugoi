@@ -149,19 +149,19 @@ suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String
     }
 }
 
-suspend fun FollowupMessageCreateBuilder.confirmationDialog(
-        content: String,
-        actor: User,
-        cancel: (suspend () -> Any?)? = null,
-        confirm: suspend () -> Any?
-) {
+suspend fun PublicSlashCommandContext<*, *>.requestConfirmation(
+    content: String,
+    cancel: (suspend () -> Any?)? = null,
+    confirm: suspend () -> Any?,
+) = respond {
     this.content = content
     components {
         val done = AtomicBoolean()
+        val user = user.asUser()
 
         ephemeralButton {
             label = "Confirmar"
-            check { sameUser(actor) }
+            check { sameUser(user) }
 
             action {
                 if (!done.getAndSet(true)) {
@@ -174,7 +174,7 @@ suspend fun FollowupMessageCreateBuilder.confirmationDialog(
 
         ephemeralButton {
             label = "Cancelar"
-            check { sameUser(actor) }
+            check { sameUser(user) }
 
             action {
                 if (!done.getAndSet(true)) {

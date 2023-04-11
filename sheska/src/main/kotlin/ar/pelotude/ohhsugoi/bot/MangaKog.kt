@@ -450,39 +450,36 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     return@action
                 }
 
-                respond {
-                    confirmationDialog(
-                            "¿Confirmas la edición sobre ${currentManga.title}?",
-                            user.asUser(),
-                    ) {
-                        val mangaChanges = with(arguments) {
-                            MangaChanges(
-                                id=id,
-                                title=title,
-                                description=description,
-                                imgURLSource=arguments.image?.let { URL(it.url) },
-                                link=link,
-                                volumes=volumes,
-                                pagesPerVolume=pagesPerVolume,
-                                chapters=chapters,
-                                pagesPerChapter=pagesPerChapter,
-                                demographic=demographic,
-                                tagsToAdd=addTags?.toTagSet(),
-                                tagsToRemove=removeTags?.toTagSet(),
-                                read=null,
-                            )
-                        }
+                requestConfirmation(
+                        "¿Confirmas la edición sobre ${currentManga.title}?",
+                ) {
+                    val mangaChanges = with(arguments) {
+                        MangaChanges(
+                            id=id,
+                            title=title,
+                            description=description,
+                            imgURLSource=arguments.image?.let { URL(it.url) },
+                            link=link,
+                            volumes=volumes,
+                            pagesPerVolume=pagesPerVolume,
+                            chapters=chapters,
+                            pagesPerChapter=pagesPerChapter,
+                            demographic=demographic,
+                            tagsToAdd=addTags?.toTagSet(),
+                            tagsToRemove=removeTags?.toTagSet(),
+                            read=null,
+                        )
+                    }
 
-                        try {
-                            db.updateManga(mangaChanges, *flags.toTypedArray())
-                            kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
+                    try {
+                        db.updateManga(mangaChanges, *flags.toTypedArray())
+                        kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
 
-                            respondWithChanges(currentManga)
-                        } catch (e: DownloadException) {
-                            kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
+                        respondWithChanges(currentManga)
+                    } catch (e: DownloadException) {
+                        kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
 
-                            respondWithError("Hubo un problema descargando la imagen")
-                        }
+                        respondWithError("Hubo un problema descargando la imagen")
                     }
                 }
             }
@@ -506,16 +503,13 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     return@action
                 }
 
-                respond {
-                    confirmationDialog(
-                        "¿Confirmas la eliminación de **${manga.title}**?",
-                        user.asUser()
-                    ) {
-                        val successfullyDeleted = db.deleteManga(manga.id)
+                requestConfirmation(
+                    "¿Confirmas la eliminación de **${manga.title}**?",
+                ) {
+                    val successfullyDeleted = db.deleteManga(manga.id)
 
-                        if (successfullyDeleted) respondWithSuccess("Eliminado **${manga.title}**")
-                        else respondWithError("No se pudo eliminar ${manga.title}")
-                    }
+                    if (successfullyDeleted) respondWithSuccess("Eliminado **${manga.title}**")
+                    else respondWithError("No se pudo eliminar ${manga.title}")
                 }
             }
         }
