@@ -21,6 +21,13 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
+object colors {
+    val info = Color (0, 0, 200)
+    val warning = Color(200, 100, 0)
+    val success = Color(0, 200, 0)
+    val error = Color(200, 0, 0)
+}
+
 val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
         "dd/MMMM/YYYY", Locale.forLanguageTag("es-ES")
 )
@@ -96,7 +103,7 @@ suspend fun PublicSlashCommandContext<MangaExtension.EditArguments, *>.respondWi
     respond {
         embed {
             title = "Editado [#${previousManga.id}] ${previousManga.title}"
-            color = Color(0, 200, 0)
+            color = colors.success
 
             description = "__Campos modificados__:\n\n" +
                     listOf<Pair<String, *>>(
@@ -125,7 +132,7 @@ suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(title: String = "**I
             this.title = title
             this.description = description
 
-            color = Color(200, 100, 0)
+            color = colors.info
         }
     }
 }
@@ -136,7 +143,7 @@ suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: Stri
             title = "**Éxito**"
             this.description = description
 
-            color = Color(0, 200, 0)
+            color = colors.success
         }
     }
 }
@@ -147,7 +154,7 @@ suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String
             title = "**Error**"
             this.description = description
 
-            color = Color(200, 0, 0)
+            color = colors.error
         }
     }
 }
