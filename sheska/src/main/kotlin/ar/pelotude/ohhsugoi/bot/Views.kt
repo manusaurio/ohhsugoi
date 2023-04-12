@@ -2,18 +2,31 @@ package ar.pelotude.ohhsugoi.bot
 
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.components.ephemeralButton
 import com.kotlindiscord.kord.extensions.types.edit
+import com.kotlindiscord.kord.extensions.types.respond
+import com.kotlindiscord.kord.extensions.types.respondEphemeral
+import dev.kord.common.Color
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.FollowupMessageCreateBuilder
+import dev.kord.rest.builder.message.create.embed
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+
+object colors {
+    val info = Color (0, 0, 200)
+    val warning = Color(200, 100, 0)
+    val success = Color(0, 200, 0)
+    val error = Color(200, 0, 0)
+}
 
 val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
         "dd/MMMM/YYYY", Locale.forLanguageTag("es-ES")
@@ -84,38 +97,111 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
     return this
 }
 
-suspend fun FollowupMessageCreateBuilder.confirmationDialog(
-        content: String,
-        actor: User,
-        cancel: (suspend () -> Any?)? = null,
-        confirm: suspend () -> Any?
+suspend fun PublicSlashCommandContext<MangaExtension.EditArguments, *>.respondWithChanges(
+    previousManga: MangaWithTags
 ) {
-    this.content = content
-    components {
+    respond {
+        embed {
+            title = "Editado [#${previousManga.id}] ${previousManga.title}"
+            color = colors.success
+
+            description = "__Campos modificados__:\n\n" +
+                    listOf<Pair<String, *>>(
+                        ("Título" to arguments.title),
+                        ("Descripción" to arguments.description),
+                        ("Imagen" to arguments.image),
+                        ("Link" to arguments.link),
+                        ("Tomos" to arguments.volumes),
+                        ("Páginas por tomo" to arguments.pagesPerVolume),
+                        ("Capítulos" to arguments.chapters),
+                        ("Páginas por capítulo" to arguments.pagesPerChapter),
+                        ("Demografía" to arguments.demographic),
+                        ("Tags (nuevos)" to arguments.addTags),
+                        ("Tags (removidos)" to arguments.removeTags),
+                        ("Imagen removida" to arguments.unsetImage),
+                    )
+                        .filter { it.second != null }
+                        .joinToString("\n") { it.first }
+        }
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(description: String, title: String = "**Info**") {
+    respond {
+        embed {
+            this.title = title
+            this.description = description
+
+            color = colors.info
+        }
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: String, title: String = "**Éxito**") {
+    respond {
+        embed {
+            this.title = title
+            this.description = description
+
+            color = colors.success
+        }
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String, title: String = "**Error**") {
+    respond {
+        embed {
+            this.title = title
+            this.description = description
+
+            color = colors.error
+        }
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.requestConfirmation(
+    description: String,
+    timeout: Duration = 15.seconds,
+    cancel: (suspend () -> Any?)? = null,
+    confirm: suspend () -> Any?,
+) = respondEphemeral {
+    embed {
+        title = "❗ Confirmación"
+        this.description = description
+    }
+
+    components(timeout) {
         val done = AtomicBoolean()
+        val user = user.asUser()
+
+        timeoutCallback = {
+            cancel?.invoke()
+            interactionResponse.delete()
+        }
+
 
         ephemeralButton {
             label = "Confirmar"
-            check { sameUser(actor) }
+            check { sameUser(user) }
 
             action {
                 if (!done.getAndSet(true)) {
                     this@components.cancel()
-                    confirm()
                     edit { components = mutableListOf() }
+                    confirm()
                 }
             }
         }
 
         ephemeralButton {
             label = "Cancelar"
-            check { sameUser(actor) }
+            check { sameUser(user) }
 
             action {
                 if (!done.getAndSet(true)) {
                     this@components.cancel()
                     cancel?.invoke()
-                    edit { components = mutableListOf() }
+                    interactionResponse.delete()
                 }
             }
         }

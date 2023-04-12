@@ -294,27 +294,21 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val mangaList = db.searchManga(title, tag, demographic, 15)
 
                 when {
-                    mangaList.isEmpty() -> respond {
-                        embed {
-                            this.title = "Sin resultados"
-                            description = "No se encontró nada similar a lo buscado:\n\n$filterDescription"
+                    mangaList.isEmpty() -> respondWithInfo(
+                        title="Sin resultados",
+                        description="No se encontró nada similar a lo buscado:\n\n$filterDescription"
+                    )
 
-                            color = Color(200, 0, 0)
-                        }
-                    }
 
                     mangaList.size == 1 -> respond {
                         embeds.add(EmbedBuilder().mangaView(mangaList.first()))
                     }
 
-                    mangaList.size < 5 -> respond {
-                        embed {
-                            this.title = "Encontrados ${mangaList.size} resultados\n\n"
-                            description = filterDescription +
+                    mangaList.size < 5 -> respondWithSuccess(
+                            "Encontrados ${mangaList.size} resultados\n\n",
+                            filterDescription +
                                     mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
-                            color = Color(0, 200, 0)
-                        }
-                    }
+                        )
 
                     else -> respondingPaginator {
                         val chunks = mangaList.chunked(5)
@@ -325,7 +319,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                                 this.title = "Encontrados ${mangaList.size} resultados\n\n"
                                 description = filterDescription +
                                         chunk.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
-                                color = Color(0, 200, 0)
+                                color = colors.success
                             }
                         }
                     }.send()
@@ -344,12 +338,10 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val mangaList = db.getMangas(*ids).toList()
 
                 when {
-                    mangaList.isEmpty() -> respond {
-                        embed {
-                            title = "Sin resultados"
-                            description = "No se encontró nada similar a lo buscado"
-                        }
-                    }
+                    mangaList.isEmpty() -> respondWithInfo(
+                        title="Sin resultados",
+                        description="No se encontró nada similar a lo buscado"
+                    )
 
                     mangaList.size == 1 -> respond {
                         embeds.add(EmbedBuilder().mangaView(mangaList.first()))
@@ -387,46 +379,37 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 val validPpc: Boolean = ppc > 0
 
-                respond {
-                    if (validPpc) try {
-                        val imgURLSource: URL? = arguments.image?.let { URL(it.url) }
-                        val tags = arguments.tags.toTagSet()
+                if (!validPpc) {
+                    respondWithError(
+                        description="Especifica la cantidad de páginas por capítulo o valores" +
+                                " en otros argumentos que me permitan computarlo!"
+                    )
+                } else try {
+                    val imgURLSource: URL? = arguments.image?.let { URL(it.url) }
 
-                        val id = db.addManga(
-                                title = arguments.title,
-                                description = arguments.description,
-                                imgURLSource = imgURLSource,
-                                link = arguments.link,
-                                demographic = arguments.demographic,
-                                volumes = volumes,
-                                pagesPerVolume = ppv,
-                                chapters = chapters,
-                                pagesPerChapter = ppc,
-                                tags = arguments.tags.toTagSet(), // TODO: Make tags be saved in lowercase in db
-                                read = false
-                        )
+                    val insertedManga = db.addManga(
+                        title = arguments.title,
+                        description = arguments.description,
+                        imgURLSource = imgURLSource,
+                        link = arguments.link,
+                        demographic = arguments.demographic,
+                        volumes = volumes,
+                        pagesPerVolume = ppv,
+                        chapters = chapters,
+                        pagesPerChapter = ppc,
+                        tags = arguments.tags.toTagSet(), // TODO: Make tags be saved in lowercase in db
+                        read = false
+                    )
+
+                    respond {
                         content = "Agregado exitosamente."
+
                         embed {
-                            // TODO: rewrite this mess! Also,
-                            //  the image used here is EPHEMERAL so
-                            //  we shouldn't rely on it
-                            val a = arguments
-                            mangaView(
-                                MangaWithTagsData(
-                                    MangaData(
-                                        id, a.title, java.time.Instant.now().epochSecond, a.description, imgURLSource,
-                                        a.link, a.demographic, a.volumes, a.pagesPerVolume, a.chapters, a.pagesPerChapter,
-                                        false
-                                    ),
-                                    tags
-                                )
-                            )
+                            mangaView(insertedManga)
                         }
-                    } catch (e: DownloadException) {
-                            content = "Error al agregar."
-                    } else {
-                        content = "**Error**: Especifica la cantidad de páginas por capítulo o valores en otros argumentos que me permitan computarlo!"
                     }
+                } catch (e: DownloadException) {
+                    respondWithError(description="Error al agregar")
                 }
             }
         }
@@ -448,81 +431,49 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val somethingChanged = arguments.args.any { it.converter.parsed != null && it.displayName != "id" }
 
                 if (!somethingChanged) {
-                    respond {
-                        content = "No has especificado ningún cambio."
-                    }
+                    respondWithError("No has especificado ningún cambio.")
+
                     return@action
                 }
 
                 val currentManga = db.getManga(arguments.id)
 
                 currentManga ?: run {
-                    respond {
-                        content = "La id ${arguments.id} no pudo ser encontrada"
-                    }
+                    respondWithError("La id ${arguments.id} no pudo ser encontrada")
+
                     return@action
                 }
 
-                respond {
-                    confirmationDialog(
-                            "¿Confirmas la edición sobre ${currentManga.title}?",
-                            user.asUser(),
-                    ) {
-                        val mangaChanges = with(arguments) {
-                            MangaChanges(
-                                id=id,
-                                title=title,
-                                description=description,
-                                imgURLSource=arguments.image?.let { URL(it.url) },
-                                link=link,
-                                volumes=volumes,
-                                pagesPerVolume=pagesPerVolume,
-                                chapters=chapters,
-                                pagesPerChapter=pagesPerChapter,
-                                demographic=demographic,
-                                tagsToAdd=addTags?.toTagSet(),
-                                tagsToRemove=removeTags?.toTagSet(),
-                                read=null,
-                            )
-                        }
+                requestConfirmation(
+                        "¿Confirmas la edición sobre ${currentManga.title}?",
+                ) {
+                    val mangaChanges = with(arguments) {
+                        MangaChanges(
+                            id=id,
+                            title=title,
+                            description=description,
+                            imgURLSource=arguments.image?.let { URL(it.url) },
+                            link=link,
+                            volumes=volumes,
+                            pagesPerVolume=pagesPerVolume,
+                            chapters=chapters,
+                            pagesPerChapter=pagesPerChapter,
+                            demographic=demographic,
+                            tagsToAdd=addTags?.toTagSet(),
+                            tagsToRemove=removeTags?.toTagSet(),
+                            read=null,
+                        )
+                    }
 
-                        respond {
-                            try {
-                                db.updateManga(mangaChanges, *flags.toTypedArray())
-                                kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
+                    try {
+                        db.updateManga(mangaChanges, *flags.toTypedArray())
+                        kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
 
-                                // TODO: move to Views
-                                embed {
-                                    title = "Editado [#${currentManga.id}] ${currentManga.title}"
-                                    color = Color(0, 200, 0)
+                        respondWithChanges(currentManga)
+                    } catch (e: DownloadException) {
+                        kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
 
-                                    description = "__Campos modificados__:\n\n" +
-                                            listOf<Pair<String, *>>(
-                                                ("Título" to arguments.title),
-                                                ("Descripción" to arguments.description),
-                                                ("Imagen" to arguments.image),
-                                                ("Link" to arguments.link),
-                                                ("Tomos" to arguments.volumes),
-                                                ("Páginas por capítulo" to arguments.pagesPerChapter),
-                                                ("Páginas por tomo" to arguments.pagesPerVolume),
-                                                ("Demografía" to arguments.demographic),
-                                                ("Tags (nuevos)" to arguments.addTags),
-                                                ("Tags (removidos)" to arguments.removeTags)
-                                            )
-                                                .filter { it.second != null }
-                                                .joinToString("\n") { it.first }
-                                }
-                            } catch (e: DownloadException) {
-                                kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
-
-                                embed {
-                                    title = "**Error**"
-                                    description = "Hubo un problema descargando la imagen"
-
-                                    color = Color(200, 0, 0)
-                                }
-                            }
-                        }
+                        respondWithError("Hubo un problema descargando la imagen")
                     }
                 }
             }
@@ -541,23 +492,18 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val manga = db.getManga(arguments.id)
 
                 manga ?: run {
-                    respond {
-                        content = "La id ${arguments.id} no pudo ser encontrada"
-                    }
+                    respondWithError("La id ${arguments.id} no pudo ser encontrada")
+
                     return@action
                 }
 
-                respond {
-                    confirmationDialog(
-                        "¿Confirmas la eliminación de **${manga.title}**?",
-                        user.asUser()
-                    ) {
-                        respond {
-                            db.deleteManga(manga.id)
-                            content = if (db.deleteManga(manga.id)) "Eliminado **${manga.title}**"
-                            else "No se pudo eliminar ${manga.title}."
-                        }
-                    }
+                requestConfirmation(
+                    "¿Confirmas la eliminación de **${manga.title}**?",
+                ) {
+                    val successfullyDeleted = db.deleteManga(manga.id)
+
+                    if (successfullyDeleted) respondWithSuccess("Eliminado **${manga.title}**")
+                    else respondWithError("No se pudo eliminar ${manga.title}")
                 }
             }
         }
