@@ -294,27 +294,21 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val mangaList = db.searchManga(title, tag, demographic, 15)
 
                 when {
-                    mangaList.isEmpty() -> respond {
-                        embed {
-                            this.title = "Sin resultados"
-                            description = "No se encontró nada similar a lo buscado:\n\n$filterDescription"
+                    mangaList.isEmpty() -> respondWithInfo(
+                        title="Sin resultados",
+                        description="No se encontró nada similar a lo buscado:\n\n$filterDescription"
+                    )
 
-                            color = Color(200, 0, 0)
-                        }
-                    }
 
                     mangaList.size == 1 -> respond {
                         embeds.add(EmbedBuilder().mangaView(mangaList.first()))
                     }
 
-                    mangaList.size < 5 -> respond {
-                        embed {
-                            this.title = "Encontrados ${mangaList.size} resultados\n\n"
-                            description = filterDescription +
+                    mangaList.size < 5 -> respondWithSuccess(
+                            "Encontrados ${mangaList.size} resultados\n\n",
+                            filterDescription +
                                     mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
-                            color = Color(0, 200, 0)
-                        }
-                    }
+                        )
 
                     else -> respondingPaginator {
                         val chunks = mangaList.chunked(5)
@@ -325,7 +319,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                                 this.title = "Encontrados ${mangaList.size} resultados\n\n"
                                 description = filterDescription +
                                         chunk.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
-                                color = Color(0, 200, 0)
+                                color = colors.success
                             }
                         }
                     }.send()
@@ -345,8 +339,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 when {
                     mangaList.isEmpty() -> respondWithInfo(
-                        "Sin resultados",
-                        "No se encontró nada similar a lo buscado"
+                        title="Sin resultados",
+                        description="No se encontró nada similar a lo buscado"
                     )
 
                     mangaList.size == 1 -> respond {
@@ -387,7 +381,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 if (!validPpc) {
                     respondWithError(
-                        "Especifica la cantidad de páginas por capítulo o valores" +
+                        description="Especifica la cantidad de páginas por capítulo o valores" +
                                 " en otros argumentos que me permitan computarlo!"
                     )
                 } else try {
@@ -415,7 +409,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         }
                     }
                 } catch (e: DownloadException) {
-                    respondWithError("Error al agregar")
+                    respondWithError(description="Error al agregar")
                 }
             }
         }

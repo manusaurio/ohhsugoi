@@ -126,7 +126,7 @@ suspend fun PublicSlashCommandContext<MangaExtension.EditArguments, *>.respondWi
     }
 }
 
-suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(title: String = "**Info**", description: String) {
+suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(description: String, title: String = "**Info**") {
     respond {
         embed {
             this.title = title
@@ -137,10 +137,10 @@ suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(title: String = "**I
     }
 }
 
-suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: String) {
+suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: String, title: String = "**Éxito**") {
     respond {
         embed {
-            title = "**Éxito**"
+            this.title = title
             this.description = description
 
             color = colors.success
@@ -148,10 +148,10 @@ suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: Stri
     }
 }
 
-suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String) {
+suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String, title: String = "**Error**") {
     respond {
         embed {
-            title = "**Error**"
+            this.title = title
             this.description = description
 
             color = colors.error
