@@ -161,7 +161,7 @@ class MangaDatabaseSQLite(
             queries.updateMangaImgURL(imgFileName, insertionId)
         }
 
-        return queries.selectMangaWithTags(listOf(1), ::mangaSQLDmapper).executeAsOne()
+        return queries.selectMangaWithTags(listOf(insertionId), ::mangaSQLDmapper).executeAsOne()
     }
 
     override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {
