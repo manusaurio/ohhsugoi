@@ -166,6 +166,11 @@ class MangaDatabaseSQLite(
 
     override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {
         val mangaId = changes.id
+        
+        val imgFilePath = if (changes.imgURLSource != null) {
+            // throws DownloadException
+            storeMangaCover(changes.imgURLSource, mangaId)
+        } else null
 
         queries.transaction {
             flags.forEach { flag ->
@@ -180,11 +185,6 @@ class MangaDatabaseSQLite(
             }
 
             with (changes) {
-                val imgFilePath = if (imgURLSource != null) {
-                    // throws DownloadException
-                    storeMangaCover(imgURLSource, mangaId)
-                } else null
-
                 queries.updateNonNullablesManga(
                     title, description, imgFilePath, link, demographic,
                     volumes, pagesPerVolume, chapters, pagesPerChapter, read?.sqliteBool(),
