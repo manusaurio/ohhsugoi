@@ -5,6 +5,10 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.Database
 import ar.pelotude.ohhsugoi.*
+import ar.pelotude.ohhsugoi.util.image.downloadImage
+import ar.pelotude.ohhsugoi.util.makeTitle
+import ar.pelotude.ohhsugoi.util.image.saveAsJpg
+import ar.pelotude.ohhsugoi.util.uuidString
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import dev.kord.core.kordLogger
 import kotlinx.coroutines.CoroutineDispatcher

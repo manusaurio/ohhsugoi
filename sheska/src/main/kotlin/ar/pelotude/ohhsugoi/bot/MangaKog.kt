@@ -1,9 +1,9 @@
 package ar.pelotude.ohhsugoi.bot
 
-import ar.pelotude.ohhsugoi.UnsupportedDownloadException
+import ar.pelotude.ohhsugoi.util.image.UnsupportedDownloadException
 import ar.pelotude.ohhsugoi.db.*
-import ar.pelotude.ohhsugoi.isValidURL
-import ar.pelotude.ohhsugoi.makeTitle
+import ar.pelotude.ohhsugoi.util.isValidURL
+import ar.pelotude.ohhsugoi.util.makeTitle
 import com.kotlindiscord.kord.extensions.checks.hasRole
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice

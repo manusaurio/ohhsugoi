@@ -1,48 +1,12 @@
-package ar.pelotude.ohhsugoi
+package ar.pelotude.ohhsugoi.util.image
 
 import java.awt.image.BufferedImage
 import java.io.File
 import java.net.URL
-import java.util.*
 import javax.imageio.IIOImage
 import javax.imageio.ImageIO
 import javax.imageio.ImageWriteParam
 import javax.imageio.stream.FileImageOutputStream
-
-/** This isn't ideal but I'm not gonna add another dependency or write something fancy
- * for something meant to be used among trustworthy people */
-fun String.isValidURL() = try {
-    URL(this).toURI()
-    true
-} catch(e: java.net.MalformedURLException) {
-    false
-}
-
-fun randomString(length: Int): String {
-    val characters = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-
-    return (0..length).map {
-        characters.random()
-    }.joinToString("")
-}
-
-fun uuidString() = UUID.randomUUID().toString()
-
-fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-
-/** But like in "This is a title", not "This Is A Title" */
-fun String.makeTitle() = this.lowercase().capitalize()
-
-enum class DownloadErrorType {
-    DIMENSIONS_EXCEEDED,
-    UNSUPPORTED_FORMAT,
-}
-
-class UnsupportedDownloadException(
-    message: String?,
-    cause: Throwable? = null,
-    code: DownloadErrorType,
-) : Exception(message, cause)
 
 /**
  * Synchronous function to download an image with
@@ -72,7 +36,10 @@ fun downloadImage(
         ImageIO.createImageInputStream(stream).use { imgStream ->
             val reader = ImageIO.getImageReaders(imgStream).let {
                 if (it.hasNext()) it.next()
-                else throw UnsupportedDownloadException("Format not supported", code=DownloadErrorType.UNSUPPORTED_FORMAT)
+                else throw UnsupportedDownloadException(
+                    "Format not supported",
+                    code = DownloadErrorType.UNSUPPORTED_FORMAT
+                )
             }
 
             reader.input = imgStream
@@ -80,7 +47,7 @@ fun downloadImage(
             val (width, height) = (reader.getWidth(0) to reader.getHeight(0))
 
             if (width * height > 3000 * 4000) {
-                throw UnsupportedDownloadException("The image is too big", code=DownloadErrorType.DIMENSIONS_EXCEEDED)
+                throw UnsupportedDownloadException("The image is too big", code = DownloadErrorType.DIMENSIONS_EXCEEDED)
             }
 
             // we check if we must make it fit horizontally, vertically or neither, and by how much...
