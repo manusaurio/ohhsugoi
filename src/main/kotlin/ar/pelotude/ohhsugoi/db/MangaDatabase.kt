@@ -3,7 +3,7 @@ package ar.pelotude.ohhsugoi.db
 import app.cash.sqldelight.TransactionCallbacks
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import ar.pelotude.Database
+import ar.pelotude.db.Database
 import ar.pelotude.ohhsugoi.*
 import ar.pelotude.ohhsugoi.util.image.downloadImage
 import ar.pelotude.ohhsugoi.util.makeTitle

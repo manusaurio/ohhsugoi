@@ -51,7 +51,7 @@ sqldelight {
     databases {
         create("Database") {
             dialect("app.cash.sqldelight:sqlite-3-38-dialect:2.0.0-alpha05")
-            packageName.set("ar.pelotude")
+            packageName.set("ar.pelotude.db")
         }
     }
 }
