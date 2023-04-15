@@ -1,6 +1,6 @@
 package ar.pelotude.ohhsugoi.koin
 
-import ar.pelotude.ohhsugoi.bot.MangaKogConfiguration
+import ar.pelotude.ohhsugoi.bot.MangaExtensionConfiguration
 import ar.pelotude.ohhsugoi.db.DatabaseConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
@@ -12,8 +12,8 @@ import kotlin.io.path.createDirectories
 
 val botModule = module {
     single<MangaDatabase> { MangaDatabaseSQLite() }
-    single<MangaKogConfiguration> {
-        MangaKogConfiguration(
+    single<MangaExtensionConfiguration> {
+        MangaExtensionConfiguration(
             Snowflake(System.getenv("KORD_WEEB_SERVER")!!),
             Snowflake(System.getenv("KORD_WEEB_ROLE")!!),
             256,

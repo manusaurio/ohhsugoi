@@ -2,7 +2,7 @@ package ar.pelotude.ohhsugoi.bot
 
 import dev.kord.common.entity.Snowflake
 
-class MangaKogConfiguration(
+class MangaExtensionConfiguration(
     val guild: Snowflake,
     val allowedRole: Snowflake,
     val mangaLinkMaxLength: Int,

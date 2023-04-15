@@ -24,7 +24,7 @@ import java.net.URL
 
 class MangaExtension: Extension(), KordExKoinComponent {
     private val db: MangaDatabase by inject()
-    private val config: MangaKogConfiguration by inject()
+    private val config: MangaExtensionConfiguration by inject()
 
     override val name = "manga"
 
