@@ -4,14 +4,17 @@ import app.cash.sqldelight.TransactionCallbacks
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.Database
-import ar.pelotude.ohhsugoi.downloadMangaCover
-import ar.pelotude.ohhsugoi.makeTitle
-import ar.pelotude.ohhsugoi.saveAsJpg
-import ar.pelotude.ohhsugoi.uuidString
+import ar.pelotude.ohhsugoi.*
+import ar.pelotude.ohhsugoi.util.image.downloadImage
+import ar.pelotude.ohhsugoi.util.makeTitle
+import ar.pelotude.ohhsugoi.util.image.saveAsJpg
+import ar.pelotude.ohhsugoi.util.uuidString
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import dev.kord.core.kordLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 import java.io.IOException
@@ -22,6 +25,7 @@ class MangaDatabaseSQLite(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : MangaDatabase, KordExKoinComponent {
     internal val dbConfig: DatabaseConfiguration by inject()
+
     private val driver: SqlDriver = JdbcSqliteDriver("jdbc:sqlite:${dbConfig.sqlitePath}")
 
     private val database: Database = Database.Schema.run {
@@ -43,7 +47,10 @@ class MangaDatabaseSQLite(
 
         return@run Database(driver)
     }
+
     private val queries = database.mangaQueries
+
+    private val imgStoreSemaphore = Semaphore(3)
 
     override suspend fun getManga(id: Long): MangaWithTags? {
         return withContext(dispatcher) {
@@ -79,8 +86,8 @@ class MangaDatabaseSQLite(
     }
 
     /**
-     * Downloads the content from a [URL], assuming in the process
-     * it's an image file, then randomizes a name for it based on [mangaId]
+     * Downloads the content from a [URL], assuming  it's an image file,
+     * then randomizes a name for it based on [mangaId]
      * with the prefix "$[mangaId]-". The image is stored in the directory
      * specified by the configuration.
      *
@@ -88,21 +95,23 @@ class MangaDatabaseSQLite(
      * @param[mangaId] The id of the manga that the image represents
      * @return A [String] containing filename of the downloaded image,
      * or null if the file couldn't be downloaded
-     * @throws DownloadException if an I/O error occurs when downloading the image
+     *
+     * @throws IOException if an I/O error occurs when downloading the image
+     * @throws UnsupportedDownloadException if the image file or its content is not supported
      */
-    private fun storeMangaCover(imgSource: URL, mangaId: Long): String {
-        val mangaFileName = "$mangaId-${uuidString()}.jpg"
-        val destiny = dbConfig.mangaImageDirectory / mangaFileName
+    private suspend fun storeMangaCover(imgSource: URL, mangaId: Long): String {
+        imgStoreSemaphore.withPermit {
+            val mangaFileName = "$mangaId-${uuidString()}.jpg"
+            val destiny = dbConfig.mangaImageDirectory / mangaFileName
 
-        try {
-            downloadMangaCover(imgSource, dbConfig.mangaCoversWidth, dbConfig.mangaCoversHeight)
-                    .saveAsJpg(destiny.toFile())
-        } catch(e: IOException) {
-            throw DownloadException("The image could not be downloaded", e)
+            /** throws [IOException] and [UnsupportedDownloadException] */
+            downloadImage(imgSource, dbConfig.mangaCoversWidth, dbConfig.mangaCoversHeight)
+                .saveAsJpg(destiny.toFile(), 0.85f)
+
+            kordLogger.info { "Added image: $mangaFileName" }
+
+            return mangaFileName
         }
-        kordLogger.info { "Added image: $mangaFileName " }
-
-        return mangaFileName
     }
 
     /**
@@ -166,7 +175,7 @@ class MangaDatabaseSQLite(
 
     override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {
         val mangaId = changes.id
-        
+
         val imgFilePath = if (changes.imgURLSource != null) {
             // throws DownloadException
             storeMangaCover(changes.imgURLSource, mangaId)
