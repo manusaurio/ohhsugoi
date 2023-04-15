@@ -14,7 +14,6 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
-import dev.kord.common.Color
 import dev.kord.core.entity.Attachment
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
@@ -403,6 +402,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         read = false
                     )
 
+                    kordLogger.info { "${user.id} added entry #${insertedManga.id} (${insertedManga.title})" }
+
                     respond {
                         content = "Agregado exitosamente."
 
@@ -477,10 +478,13 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
 
                         respondWithChanges(currentManga)
-                    } catch (e: DownloadException) {
-                        kordLogger.trace(e) { "Error downloading a cover from ${currentManga.imgURLSource}" }
-
-                        respondWithError("Hubo un problema descargando la imagen")
+                    } catch (e: UnsupportedDownloadException) {
+                        respondWithError(
+                            description="Ese tipo de imagen no es válido." +
+                                    " Prueba con una imagen más pequeña y en JPG o PNG."
+                        )
+                    } catch (e: IOException) {
+                        respondWithError(description="Error al intentar descargar la imagen.")
                     }
                 }
             }
