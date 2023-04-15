@@ -33,6 +33,17 @@ fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.title
 /** But like in "This is a title", not "This Is A Title" */
 fun String.makeTitle() = this.lowercase().capitalize()
 
+enum class DownloadErrorType {
+    DIMENSIONS_EXCEEDED,
+    UNSUPPORTED_FORMAT,
+}
+
+class UnsupportedDownloadException(
+    message: String?,
+    cause: Throwable? = null,
+    code: DownloadErrorType,
+) : Exception(message, cause)
+
 /**
  * Synchronous function to download an image with
  * a max size of [maxWidth] and [maxHeight]. If the provided
@@ -60,7 +71,8 @@ fun downloadImage(
     imageSource.openStream().use { stream ->
         ImageIO.createImageInputStream(stream).use { imgStream ->
             val reader = ImageIO.getImageReaders(imgStream).let {
-                if (it.hasNext()) it.next() else throw IllegalArgumentException("Not supported")
+                if (it.hasNext()) it.next()
+                else throw UnsupportedDownloadException("Format not supported", code=DownloadErrorType.UNSUPPORTED_FORMAT)
             }
 
             reader.input = imgStream
@@ -68,7 +80,7 @@ fun downloadImage(
             val (width, height) = (reader.getWidth(0) to reader.getHeight(0))
 
             if (width * height > 3000 * 4000) {
-                throw IllegalArgumentException("Image is too big")
+                throw UnsupportedDownloadException("The image is too big", code=DownloadErrorType.DIMENSIONS_EXCEEDED)
             }
 
             // we check if we must make it fit horizontally, vertically or neither, and by how much...

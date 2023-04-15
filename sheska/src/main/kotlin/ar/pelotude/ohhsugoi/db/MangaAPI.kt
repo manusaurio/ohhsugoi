@@ -148,5 +148,3 @@ enum class UpdateFlags {
     UNSET_CHAPTERS,
     UNSET_PPC,
 }
-
-class DownloadException(message: String, cause: Throwable) : IOException(message, cause)

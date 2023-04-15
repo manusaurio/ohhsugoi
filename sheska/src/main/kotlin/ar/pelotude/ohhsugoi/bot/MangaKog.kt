@@ -1,5 +1,6 @@
 package ar.pelotude.ohhsugoi.bot
 
+import ar.pelotude.ohhsugoi.UnsupportedDownloadException
 import ar.pelotude.ohhsugoi.db.*
 import ar.pelotude.ohhsugoi.isValidURL
 import ar.pelotude.ohhsugoi.makeTitle
@@ -19,6 +20,7 @@ import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
 import org.koin.core.component.inject
+import java.io.IOException
 import java.net.URL
 
 class MangaExtension: Extension(), KordExKoinComponent {
@@ -408,8 +410,13 @@ class MangaExtension: Extension(), KordExKoinComponent {
                             mangaView(insertedManga)
                         }
                     }
-                } catch (e: DownloadException) {
-                    respondWithError(description="Error al agregar")
+                } catch (e: UnsupportedDownloadException) {
+                    respondWithError(
+                        description="Ese tipo de imagen no es válido." +
+                            " Prueba con una imagen más pequeña y en JPG o PNG."
+                    )
+                } catch (e: IOException) {
+                    respondWithError(description="Error al intentar descargar la imagen.")
                 }
             }
         }

@@ -91,19 +91,19 @@ class MangaDatabaseSQLite(
      * @param[mangaId] The id of the manga that the image represents
      * @return A [String] containing filename of the downloaded image,
      * or null if the file couldn't be downloaded
-     * @throws DownloadException if an I/O error occurs when downloading the image
+     *
+     * @throws IOException if an I/O error occurs when downloading the image
+     * @throws UnsupportedDownloadException if the image file or its content is not supported
      */
     private suspend fun storeMangaCover(imgSource: URL, mangaId: Long): String {
         imgStoreSemaphore.withPermit {
             val mangaFileName = "$mangaId-${uuidString()}.jpg"
             val destiny = dbConfig.mangaImageDirectory / mangaFileName
 
-            try {
-                downloadImage(imgSource, dbConfig.mangaCoversWidth, dbConfig.mangaCoversHeight)
-                    .saveAsJpg(destiny.toFile(), 0.85f)
-            } catch(e: IOException) {
-                throw DownloadException("The image could not be downloaded", e)
-            }
+            /** throws [IOException] and [UnsupportedDownloadException] */
+            downloadImage(imgSource, dbConfig.mangaCoversWidth, dbConfig.mangaCoversHeight)
+                .saveAsJpg(destiny.toFile(), 0.85f)
+
             kordLogger.info { "Added image: $mangaFileName" }
 
             return mangaFileName
