@@ -1,6 +1,5 @@
 package ar.pelotude.ohhsugoi
 
-import java.awt.Image
 import java.awt.image.BufferedImage
 import java.io.File
 import java.net.URL
@@ -35,94 +34,100 @@ fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.title
 fun String.makeTitle() = this.lowercase().capitalize()
 
 /**
- * Synchronous function to download an image and cropping it
- * from the center adjusting it to a target desired size. This
- * means either 100% of the width or 100% of the height of the
- * original image will be preserved (although scaled), while
- * the other dimension will be cropped
+ * Synchronous function to download an image with
+ * a max size of [maxWidth] and [maxHeight]. If the provided
+ * image exceeds one of the two dimensions, it'll be scaled
+ * down to fit in them while maintaining the original
+ * aspect ratio.
+ *
+ * This function only takes the first image that the provided
+ * file contains.
  *
  * @param[imageSource] [URL] pointing to an image
- * @param[targetWidth] The desired new width
- * @param[targetHeight] The desired new height
+ * @param[maxWidth] The maximum width the image can have
+ * @param[maxHeight] The maximum height the image can have
  * @param[scalingAlgorithm] A constant that represents the desired
- * type of scaling, [Image.SCALE_FAST] by default.
+ * type of scaling, [BufferedImage.SCALE_FAST] by default.
  *
  * @return[BufferedImage] The resulting image
  */
-fun downloadMangaCover(
-        imageSource: URL,
-        targetWidth: Int,
-        targetHeight: Int,
-        scalingAlgorithm: Int = Image.SCALE_FAST,
+fun downloadImage(
+    imageSource: URL,
+    maxWidth: Int,
+    maxHeight: Int,
+    scalingAlgorithm: Int = BufferedImage.SCALE_SMOOTH,
 ): BufferedImage {
-    val img = ImageIO.read(imageSource)
+    imageSource.openStream().use { stream ->
+        ImageIO.createImageInputStream(stream).use { imgStream ->
+            val reader = ImageIO.getImageReaders(imgStream).let {
+                if (it.hasNext()) it.next() else throw IllegalArgumentException("Not supported")
+            }
 
-    val (width, height) = (img.width to img.height)
+            reader.input = imgStream
 
-    val currentRatio = width.toDouble() / height.toDouble()
-    val targetRatio = targetWidth.toDouble() / targetHeight.toDouble()
+            val (width, height) = (reader.getWidth(0) to reader.getHeight(0))
 
-    val (xData, yData) = if (currentRatio > targetRatio) {
-        // -> target has a wider ratio
-        // select all height, crop width
+            if (width * height > 3000 * 4000) {
+                throw IllegalArgumentException("Image is too big")
+            }
 
-        val yData = 0 to height
+            // we check if we must make it fit horizontally, vertically or neither, and by how much...
+            val currentRatio = width.toDouble() / height.toDouble()
+            val targetRatio = maxWidth.toDouble() / maxHeight.toDouble()
 
-        val xData = (targetRatio / currentRatio).let { widthPercent ->
-            val offset = (width.toDouble() - (width.toDouble() * widthPercent)) / 2.0
+            val (resizeAmount: Double, ss: Int) = when {
+                // if the image is smaller, leave it as it is
+                width <= maxWidth && height <= maxHeight -> 1.0 to 1
 
-            offset.toInt() to (width - offset*2).toInt()
+                // is it wider than allowed? check by how much we must resize it
+                // base the subsampling on the width
+                currentRatio > targetRatio -> maxWidth.toDouble() / width.toDouble() to
+                        (width / (maxWidth*2)).coerceAtLeast(1)
+
+                else -> maxHeight.toDouble() / height.toDouble() to
+                        (height / (maxHeight*2)).coerceAtLeast(1)
+            }
+
+            val (totalWidth, totalHeight) = if (resizeAmount == 1.0) width to height
+            else (width * resizeAmount).toInt() to (height * resizeAmount).toInt()
+
+            val params = reader.defaultReadParam.apply {
+                setSourceSubsampling(ss, ss, 0, 0)
+            }
+
+            val resizedImg = reader.read(0, params).getScaledInstance(totalWidth, totalHeight, scalingAlgorithm)
+
+            val resizedImgBuffer = BufferedImage(totalWidth, totalHeight, BufferedImage.TYPE_INT_RGB).apply {
+                graphics.drawImage(resizedImg, 0, 0, null)
+            }
+
+            return resizedImgBuffer
         }
-
-        xData to yData
-    } else {
-        // -> taller has a taller ratio
-        // select all width, crop height
-
-        val yData = (currentRatio / targetRatio).let { heightPercent ->
-            val offset = (height.toDouble() - (height.toDouble() * heightPercent)) / 2.0
-
-            offset.toInt() to (height - offset*2).toInt()
-        }
-
-        val xData = 0 to width
-
-        xData to yData
     }
-
-    val cropped = img.getSubimage(xData.first, yData.first, xData.second, yData.second)
-    val scaled = cropped.getScaledInstance(targetWidth, targetHeight, scalingAlgorithm)
-
-    val buffered = BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
-
-    buffered.graphics.drawImage(scaled, 0, 0, null)
-
-    return buffered
 }
 
 /**
- * Saves a [BufferedImage] to a specified file as JPG and closes the file.
- *
- * @param[destiny] A [File] the image should be written onto.
- * @param[quality] The compression level of the image, within the bounds 0.0 to 1.0
- *
- * @throws[IllegalArgumentException] If the provided value for [quality] is out of bounds
- * @throws[java.io.IOException] If something went wrong writing the file
- */
-fun BufferedImage.saveAsJpg(destiny: File, quality: Float = 0.4f) {
-    val jpgWriter = ImageIO.getImageWritersByFormatName("jpg").next()
+* Saves a [BufferedImage] to a specified file as JPG and closes the file.
+*
+* @param[destiny] A [File] the image should be written onto.
+* @param[quality] The compression level of the image, within the bounds 0.0 to 1.0
+*
+* @throws[IllegalArgumentException] If the provided value for [quality] is out of bounds
+* @throws[java.io.IOException] If something went wrong writing the file
+*/
+fun BufferedImage.saveAsJpg(destiny: File, quality: Float = 0.7f) {
+    val imgWriter = ImageIO.getImageWritersByFormatName("jpg").next()
 
-    val params: ImageWriteParam = jpgWriter.defaultWriteParam!!.apply {
+    val writerParams: ImageWriteParam = imgWriter.defaultWriteParam!!.apply {
         compressionMode = ImageWriteParam.MODE_EXPLICIT
         compressionQuality = quality
     }
 
     try {
-        jpgWriter.output = FileImageOutputStream(destiny)
-        jpgWriter.write(null, IIOImage(this, null, null), params)
-    } finally {
-        // I've read of bugs where this thing doesn't work properly unless you close it/flush it
-        // I don't think there's a practical way to use `.use { }` with the writer
-        (jpgWriter.output as FileImageOutputStream).close()
+        imgWriter.output = FileImageOutputStream(destiny)
+        imgWriter.write(null, IIOImage(this, null, null), writerParams)
+    }
+    finally {
+        (imgWriter.output as FileImageOutputStream).close()
     }
 }
