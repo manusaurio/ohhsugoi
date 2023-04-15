@@ -1,2 +1,1 @@
-rootProject.name = "ohhsugoi"
-include("sheska")
+rootProject.name = "sheska"
