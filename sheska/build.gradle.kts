@@ -55,9 +55,3 @@ sqldelight {
         }
     }
 }
-
-// not a fan of fat jars
-tasks.register<Copy>("copyDependencies") {
-    from(configurations.runtimeClasspath)
-        .into("dependencies")
-}
