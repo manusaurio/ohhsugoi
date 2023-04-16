@@ -1,6 +1,7 @@
 package ar.pelotude.ohhsugoi.bot
 
 import ar.pelotude.ohhsugoi.db.MangaWithTags
+import ar.pelotude.ohhsugoi.util.makeTitle
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.components.components
@@ -57,7 +58,8 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
         val tags = manga.tags.takeIf(Set<*>::isNotEmpty)?.joinToString(
                 separator = ", ",
                 prefix = " ",
-                postfix = ".".replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                postfix = ".",
+                transform = String::makeTitle,
         ) ?: ""
         value = "${manga.demographic}.$tags"
     }
