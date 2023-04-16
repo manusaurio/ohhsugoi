@@ -3,7 +3,6 @@ package ar.pelotude.ohhsugoi.bot
 import ar.pelotude.ohhsugoi.util.image.UnsupportedDownloadException
 import ar.pelotude.ohhsugoi.db.*
 import ar.pelotude.ohhsugoi.util.isValidURL
-import ar.pelotude.ohhsugoi.util.makeTitle
 import com.kotlindiscord.kord.extensions.checks.hasRole
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.optionalStringChoice
@@ -31,11 +30,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
     private fun Attachment?.isValidImage(): Boolean =
             this == null || isImage && size < 8000000
 
-    private fun String.toTagSet() =
-            this.split(',')
-            .filter(String::isNotBlank)
-            .map { it.trim().makeTitle() }
-            .toSet()
+    private fun String.toTagSet() = split(',').map(String::trim).toSet()
 
     inner class AddMangaArgs : Arguments() {
         val title by string {
@@ -398,7 +393,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         pagesPerVolume = ppv,
                         chapters = chapters,
                         pagesPerChapter = ppc,
-                        tags = arguments.tags.toTagSet(), // TODO: Make tags be saved in lowercase in db
+                        tags = arguments.tags.toTagSet(),
                         read = false
                     )
 
