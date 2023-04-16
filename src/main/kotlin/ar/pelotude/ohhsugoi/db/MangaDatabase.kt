@@ -6,7 +6,6 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.db.Database
 import ar.pelotude.ohhsugoi.*
 import ar.pelotude.ohhsugoi.util.image.downloadImage
-import ar.pelotude.ohhsugoi.util.makeTitle
 import ar.pelotude.ohhsugoi.util.image.saveAsJpg
 import ar.pelotude.ohhsugoi.util.uuidString
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
@@ -71,7 +70,7 @@ class MangaDatabaseSQLite(
         limit: Long
     ): Collection<MangaWithTags> {
         return withContext(dispatcher) {
-            val titleTagFilter = tagFilter?.makeTitle()
+            val titleTagFilter = tagFilter?.lowercase()?.trim()
             return@withContext if (text != null) queries.searchMangaWithTagsFTS(
                 "title: $text",
                 demographicFilter,
@@ -122,8 +121,11 @@ class MangaDatabaseSQLite(
      * This function does not request its own transaction and should be called within one.
      */
     private fun TransactionCallbacks.addTags(mangaId: Long, tags: Collection<String>) {
-        val titledTags = tags.map(String::makeTitle).toSet()
-        for (tag in titledTags) {
+        val cleanTags = tags.map { it.lowercase().trim() }.filter(String::isNotBlank)
+
+        if (cleanTags.isEmpty()) return
+
+        for (tag in cleanTags) {
             val tagId: Long = queries.insertTag(tag).executeAsOne()
             queries.insertTagAssociation(tagId, mangaId)
         }
@@ -205,9 +207,9 @@ class MangaDatabaseSQLite(
                 addTags(mangaId, tags)
             }
 
-            val tagsToRemove = changes.tagsToRemove?.map(String::makeTitle)
+            val tagsToRemove = changes.tagsToRemove?.map { it.lowercase().trim() }?.filter(String::isNotBlank)
 
-            tagsToRemove?.let { tags ->
+            tagsToRemove?.takeIf(Collection<*>::isNotEmpty)?.let { tags ->
                 queries.removeTagAssociation(mangaId, tags)
             }
         }
