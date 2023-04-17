@@ -1,7 +1,10 @@
 package ar.pelotude.ohhsugoi.bot
 
+import ar.pelotude.ohhsugoi.db.MangaChanges
+import ar.pelotude.ohhsugoi.db.MangaDatabase
+import ar.pelotude.ohhsugoi.db.UpdateFlags
+import ar.pelotude.ohhsugoi.db.demographics
 import ar.pelotude.ohhsugoi.util.image.UnsupportedDownloadException
-import ar.pelotude.ohhsugoi.db.*
 import ar.pelotude.ohhsugoi.util.isValidURL
 import com.kotlindiscord.kord.extensions.checks.hasRole
 import com.kotlindiscord.kord.extensions.commands.Arguments
@@ -13,7 +16,10 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
+import com.kotlindiscord.kord.extensions.utils.suggestStringCollection
 import dev.kord.core.entity.Attachment
+import dev.kord.core.entity.interaction.AutoCompleteInteraction
+import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
@@ -31,6 +37,30 @@ class MangaExtension: Extension(), KordExKoinComponent {
             this == null || isImage && size < 8000000
 
     private fun String.toTagSet() = split(',').map(String::trim).toSet()
+
+    val tagAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
+        val typedIn = focusedOption.value
+
+        println(typedIn)
+        println(typedIn.length)
+
+        suggestStringCollection(db.searchTags(typedIn))
+    }
+
+    val multipleTagsAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
+        val typedIn: List<String> = focusedOption.value.split(',')
+
+        val results: Collection<String> = typedIn.takeIf(List<*>::isNotEmpty)?.let {
+            val previous: String? = it.dropLast(1).joinToString(",").takeIf(String::isNotBlank)
+            val searchTerm: String = typedIn.last().trim()
+
+            val candidates = db.searchTags(searchTerm)
+
+            return@let previous?.let { candidates.map { c -> "$previous, $c" } } ?: candidates
+        } ?: listOf()
+
+        suggestStringCollection(results, suggestInputWithoutMatches=true)
+    }
 
     inner class AddMangaArgs : Arguments() {
         val title by string {
@@ -88,6 +118,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     value.split(',').all(String::isBlank)
                 }
             }
+
+            autoCompleteCallback = multipleTagsAutoCompletion
         }
 
         val chapters by long {
@@ -134,6 +166,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val tag by optionalString {
             name = "tag"
             description = "Tag por el cual filtrar"
+
+            autoCompleteCallback = tagAutoCompletion
         }
 
         val demographic by optionalStringChoice {
@@ -244,6 +278,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     value!!.split(',').all(String::isBlank)
                 }
             }
+
+            autoCompleteCallback = multipleTagsAutoCompletion
         }
 
         val removeTags by optionalString {
@@ -254,6 +290,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     value!!.split(',').all(String::isBlank)
                 }
             }
+
+            autoCompleteCallback = multipleTagsAutoCompletion
         }
 
         val unsetImage by optionalBoolean {
