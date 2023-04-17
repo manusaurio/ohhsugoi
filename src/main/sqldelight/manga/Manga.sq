@@ -46,6 +46,9 @@ END;
 
 PRAGMA user_version = 1;
 
+searchTagTitle:
+SELECT t.title FROM tag t WHERE title LIKE :name || '%' LIMIT :limit;
+
 selectMangaWithTags:
 SELECT m.*, GROUP_CONCAT(tag.title) AS tags FROM manga m
 LEFT JOIN manga_tag_association ass ON ass.manga_id = m.id

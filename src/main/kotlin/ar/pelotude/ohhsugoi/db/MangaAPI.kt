@@ -138,6 +138,13 @@ interface MangaDatabase {
      * nothing to delete was found
      */
     suspend fun deleteManga(id: Long): Boolean
+
+    /**
+     * Searches tag names that start with [name]
+     *
+     * @return[Collection] with the found [String] candidates
+     */
+    suspend fun searchTags(name: String, limit: Long = 25): Collection<String>
 }
 
 enum class UpdateFlags {

@@ -220,4 +220,10 @@ class MangaDatabaseSQLite(
             queries.deleteManga(id).executeAsOneOrNull() != null
         }
     }
+
+    override suspend fun searchTags(name: String, limit: Long): Collection<String> {
+        return withContext(dispatcher) {
+            queries.searchTagTitle(name, limit).executeAsList()
+        }
+    }
 }
