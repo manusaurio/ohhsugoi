@@ -35,13 +35,18 @@ class MangaDatabaseSQLite(
             "PRAGMA user_version;",
             { c -> c.getLong(0) },
             0
-        ).value
+        ).value!!
 
         kordLogger.info { "Initializing sqlite database. sqlite user_version: $userVersion" }
 
         if (userVersion == 0L) {
             kordLogger.info { "Creating database from the scratch..." }
             create(driver)
+        }
+
+        // Run sqldelight migrations
+        if (userVersion < version) {
+            migrate(driver, userVersion.toInt(), version)
         }
 
         return@run Database(driver)
@@ -81,6 +86,20 @@ class MangaDatabaseSQLite(
             else queries.searchMangaWithTags(
                 demographicFilter, titleTagFilter, limit, ::mangaSQLDmapper
             ).executeAsList()
+        }
+    }
+
+    override suspend fun searchMangaTitle(text: String, limit: Long): Collection<Pair<Long, String>> {
+        if (text.isEmpty()) return listOf()
+
+        return withContext(dispatcher) {
+            queries.run {
+                if (text.length < 3) {
+                    searchMangaTitlesStartingWith(text, limit, ::Pair).executeAsList()
+                } else {
+                    searchMangaTitlesFTS(text, limit, ::Pair).executeAsList()
+                }
+            }
         }
     }
 

@@ -29,7 +29,7 @@ CREATE TABLE manga_tag_association (
 
 CREATE INDEX tag_index ON manga_tag_association(tag_id, manga_id);
 
-CREATE VIRTUAL TABLE mangafts USING fts5(manga_id INTEGER, title TEXT);
+CREATE VIRTUAL TABLE mangafts USING fts5(manga_id INTEGER UNINDEXED, title TEXT, tokenize="trigram");
 
 CREATE TRIGGER insert_into_mangafts
 AFTER INSERT ON manga
@@ -44,7 +44,7 @@ BEGIN
     UPDATE mangafts SET title = new.title WHERE manga_id = new.id;
 END;
 
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
 
 searchTagTitle:
 SELECT t.title FROM tag t WHERE title LIKE :name || '%' LIMIT :limit;
@@ -134,6 +134,18 @@ UPDATE manga
 SET img_URL = :imgURL
 WHERE manga.id = :mangaId AND deleted = 0;
 
+searchMangaTitlesFTS:
+SELECT m.id, m.title FROM manga m
+JOIN mangafts ON mangafts.title = m.title
+WHERE mangafts MATCH :terms AND m.deleted = 0
+ORDER BY "rank"
+LIMIT :limit;
+
+searchMangaTitlesStartingWith:
+SELECT m.id, m.title FROM manga m
+WHERE m.title LIKE :text || '%' AND m.deleted = 0
+LIMIT :limit;
+
 searchMangaWithTagsFTS:
 SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
 LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
@@ -144,6 +156,7 @@ WHERE (mangafts MATCH :terms)
     AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
 GROUP BY manga.id
 HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
+ORDER BY "rank"
 LIMIT :limit;
 
 searchMangaWithTags:

@@ -1,6 +1,5 @@
 package ar.pelotude.ohhsugoi.db
 
-import java.io.IOException
 import java.net.URL
 
 // TODO: Make choosing demographics it safer
@@ -100,6 +99,18 @@ interface MangaDatabase {
         demographicFilter: String? = null,
         limit: Long = 1
     ): Collection<MangaWithTags>
+
+    /**
+     * Performs a quick search for manga titles matching the given text.
+     * This should be used over other functions when no information other than
+     * the title and/or the id are needed.
+     *
+     * @param[text] The text to base the search on.
+     * @param[limit] Maximum number of matches to return.
+     * @return A [Collection] of [Pair]s where the first component represents an
+     * id and the second one its title.
+     */
+    suspend fun searchMangaTitle(text: String, limit: Long=25): Collection<Pair<Long, String>>
 
     /**
      * Adds a manga entry to the database. If an exception is thrown during

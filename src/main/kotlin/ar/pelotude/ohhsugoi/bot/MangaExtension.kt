@@ -17,6 +17,7 @@ import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import com.kotlindiscord.kord.extensions.utils.suggestStringCollection
+import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.entity.Attachment
 import dev.kord.core.entity.interaction.AutoCompleteInteraction
 import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
@@ -37,6 +38,16 @@ class MangaExtension: Extension(), KordExKoinComponent {
             this == null || isImage && size < 8000000
 
     private fun String.toTagSet() = split(',').map(String::trim).toSet()
+
+    val titleAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
+        val typedIn = focusedOption.value
+
+        val results = db.searchMangaTitle(typedIn).map(Pair<*, String>::component2)
+
+        suggestString {
+            results.forEach { title -> choice(title, title) }
+        }
+    }
 
     val tagAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
         val typedIn = focusedOption.value
@@ -158,6 +169,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
         val title by optionalString {
             name = "título"
             description = "El título del manga a buscar"
+
+            autoCompleteCallback = titleAutoCompletion
         }
 
         val tag by optionalString {
