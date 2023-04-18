@@ -89,6 +89,20 @@ class MangaDatabaseSQLite(
         }
     }
 
+    override suspend fun searchMangaTitle(text: String, limit: Long): Collection<Pair<Long, String>> {
+        if (text.isEmpty()) return listOf()
+
+        return withContext(dispatcher) {
+            queries.run {
+                if (text.length < 3) {
+                    searchMangaTitlesStartingWith(text, limit, ::Pair).executeAsList()
+                } else {
+                    searchMangaTitlesFTS(text, limit, ::Pair).executeAsList()
+                }
+            }
+        }
+    }
+
     /**
      * Downloads the content from a [URL], assuming  it's an image file,
      * then randomizes a name for it based on [mangaId]
