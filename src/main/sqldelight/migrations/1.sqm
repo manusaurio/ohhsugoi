@@ -1,0 +1,7 @@
+DROP TABLE mangafts;
+
+CREATE VIRTUAL TABLE mangafts USING fts5(manga_id, title, tokenize="trigram");
+
+INSERT INTO mangafts(manga_id, title) SELECT id, title FROM manga;
+
+PRAGMA user_version = 2;
