@@ -41,9 +41,6 @@ class MangaExtension: Extension(), KordExKoinComponent {
     val tagAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
         val typedIn = focusedOption.value
 
-        println(typedIn)
-        println(typedIn.length)
-
         suggestStringCollection(db.searchTags(typedIn))
     }
 
