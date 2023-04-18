@@ -134,6 +134,18 @@ UPDATE manga
 SET img_URL = :imgURL
 WHERE manga.id = :mangaId AND deleted = 0;
 
+searchMangaTitlesFTS:
+SELECT m.id, m.title FROM manga m
+JOIN mangafts ON mangafts.title = m.title
+WHERE mangafts MATCH :terms AND m.deleted = 0
+ORDER BY "rank"
+LIMIT :limit;
+
+searchMangaTitlesStartingWith:
+SELECT m.id, m.title FROM manga m
+WHERE m.title LIKE :text || '%' AND m.deleted = 0
+LIMIT :limit;
+
 searchMangaWithTagsFTS:
 SELECT manga.*, GROUP_CONCAT(tag.title) AS tags FROM manga
 LEFT JOIN manga_tag_association ass ON ass.manga_id = manga.id
