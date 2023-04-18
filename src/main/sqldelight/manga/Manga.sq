@@ -144,6 +144,7 @@ WHERE (mangafts MATCH :terms)
     AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
 GROUP BY manga.id
 HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
+ORDER BY "rank"
 LIMIT :limit;
 
 searchMangaWithTags:
