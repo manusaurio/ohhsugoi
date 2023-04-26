@@ -4,7 +4,7 @@ import kotlin.io.path.readLines
 version = "0.0.1a"
 
 plugins {
-    kotlin("jvm") version "1.6.10"  // I hate that my LSP on Emacs can't get along with recent versions
+    kotlin("jvm") version "1.8.20"
     id("app.cash.sqldelight") version "2.0.0-alpha05"
     application
 }
