@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi.db
+package ar.pelotude.ohhsugoi.db.scheduler
 
 import dev.kord.core.kordLogger
 import io.ktor.client.*
@@ -8,69 +8,20 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import java.io.IOException
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
-
-sealed class ScheduleEvent<T>(val post: ScheduledPostMetadata<T>)
-
-class Success<T>(post: ScheduledPostMetadata<T>): ScheduleEvent<T>(post)
-class Failure<T>(post: ScheduledPostMetadata<T>, reason: String): ScheduleEvent<T>(post)
-
-interface SchedulerEventHandler<T> {
-    fun handle(e: ScheduleEvent<T>)
-}
-
-/**
- * Interface to be implemented by a class that makes the programmed posts
- * persistent, like a database or a file. All the methods should be
- * thread-safe.
- *
- * Ideally, scheduled announcements should not change their state from sent to
- * anything else. This means a cancelled or failed post can be sent later on
- * (even though it's discouraged,) but a sent post should not be changed to cancelled.
- * or failed.
- */
-interface ScheduledRegistry<T> {
-    suspend fun insertAnnouncement(content: String, scheduledDateTime: ZonedDateTime): T
-
-    suspend fun markAsCancelled(id: T)
-
-    suspend fun markAsFailed(id: T)
-
-    suspend fun markAsSent(id: T)
-
-    suspend fun getPendingAnnouncements(): Set<ScheduledPostMetadata<T>>
-}
-
-class ScheduledPostMetadata<T>(
-    val id: T,
-    val execTime: ZonedDateTime,
-    val text: String,
-) {
-    override fun toString() = "ScheduledPostMetadata(id=$id, dateTime=$execTime, text=\"$text\")"
-
-    override fun hashCode() = id.hashCode() + execTime.hashCode() + text.hashCode() * 31
-
-    override fun equals(other: Any?): Boolean {
-        return if (other !is ScheduledPostMetadata<*>) false
-        else id == other.id && execTime == other.execTime && text == other.text
-    }
-
-    operator fun component1() = id
-
-    operator fun component2() = execTime
-
-    operator fun component3() = text
-}
+import java.util.concurrent.CopyOnWriteArrayList
 
 class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T>, parent: Job? = null) {
     companion object {
-        suspend operator fun <T> invoke(registry: ScheduledRegistry<T>, parent: Job? = null) = Scheduler(registry, parent).apply {
+        suspend operator fun <T> invoke(registry: ScheduledRegistry<T>, parent: Job? = null) = Scheduler(
+            registry,
+            parent
+        ).apply {
             populate()
         }
     }
@@ -137,7 +88,7 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
 
     private val scheduledPosts: ConcurrentMap<T, ScheduledPost> = ConcurrentHashMap()
 
-    private val listeners = mutableListOf<SchedulerEventHandler<T>>()
+    private val listeners = CopyOnWriteArrayList<SchedulerEventHandler<T>>()
 
     private val webhook = System.getenv("DISCORD_WEBHOOK")
 
@@ -154,7 +105,7 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
 
             client.post(webhook) {
                 contentType(ContentType.Application.Json)
-                setBody(DiscordHookMessage(content=text))
+                setBody(DiscordHookMessage(content = text))
             }.status.run {
                 // we prevent `markAs...` cancellation to make
                 // sure the new state is reflected in the database
@@ -226,7 +177,8 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
 
     /** Stops this scheduler, without affecting the registry. */
     suspend fun stop() = supervisorJob.cancelAndJoin()
-}
 
-@Serializable
-data class DiscordHookMessage(val username: String="Sheska", val content: String)
+    fun subscribe(o: SchedulerEventHandler<T>) = listeners.add(o)
+
+    fun unsubscribe(o: SchedulerEventHandler<T>) = listeners.remove(o)
+}
