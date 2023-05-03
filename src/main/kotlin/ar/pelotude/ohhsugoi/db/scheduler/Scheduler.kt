@@ -10,38 +10,32 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerializationException
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.io.IOException
 import java.time.Duration
-import java.time.ZonedDateTime
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.CopyOnWriteArrayList
 
-class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T>, parent: Job? = null) {
-    companion object {
-        suspend operator fun <T> invoke(registry: ScheduledRegistry<T>, parent: Job? = null) = Scheduler(
-            registry,
-            parent
-        ).apply {
-            populate()
-        }
-    }
-
-    private suspend fun populate() {
-        registry.getPendingAnnouncements().forEach(::loadScheduled)
-    }
-
+class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = null): KordExKoinComponent {
     private val supervisorJob = SupervisorJob(parent)
     private val exceptionHandler = CoroutineExceptionHandler { _, error ->
         when (error) {
-            is IOException -> kordLogger.error(error) { "The connection in a scheduled post failed." }
+            is IOException -> kordLogger.error(error) { "Error in the registry scope. " +
+                    "Check your database's health and your connection to it." }
             is SerializationException -> kordLogger.error(error) { "Something went wrong during a post serialization." }
             else -> throw error
         }
     }
 
     /* scope only meant for scheduled posts */
-    private val scope = CoroutineScope(supervisorJob + exceptionHandler)
+    private val scope = CoroutineScope(supervisorJob + exceptionHandler).apply {
+        launch {
+            registry.getPendingAnnouncements().forEach(::loadScheduled)
+        }
+    }
 
     inner class ScheduledPost(
         private val metadata: ScheduledPostMetadata<T>,
