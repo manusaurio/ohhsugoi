@@ -1,6 +1,6 @@
 package ar.pelotude.ohhsugoi.db.scheduler
 
-import java.time.ZonedDateTime
+import java.time.Instant
 
 /**
  * Interface to be implemented by a class that makes the programmed posts
@@ -12,7 +12,7 @@ import java.time.ZonedDateTime
  * (even though it's discouraged,) but a sent post should not be changed to cancelled.
  * or failed. */
 interface ScheduledRegistry<T> {
-    suspend fun insertAnnouncement(content: String, scheduledDateTime: ZonedDateTime): T
+    suspend fun insertAnnouncement(content: String, scheduledDateTime: Instant): T
 
     suspend fun markAsCancelled(id: T)
 

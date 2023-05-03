@@ -49,8 +49,8 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
         val id
             get() = metadata.id
 
-        val execTime
-            get() = metadata.execTime
+        val execInstant
+            get() = metadata.execInstant
 
         val text
             get() = metadata.text
@@ -67,7 +67,7 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
             job.cancel()
             registry.markAsCancelled(id)
         }
-        override fun toString() = "ScheduledPost(id=$id, datetime=$execTime, text=\"$text\", job=$job)"
+        override fun toString() = "ScheduledPost(id=$id, datetime=$execInstant, text=\"$text\", job=$job)"
     }
 
     private val client = HttpClient(CIO) {
@@ -96,9 +96,9 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
      * This is meant to be used internally to construct a [ScheduledPost] to
      * put into [scheduledPosts]. */
     private fun launchScheduled(metadata: ScheduledPostMetadata<T>): Job {
-        val (id, execDateTime, text) = metadata
+        val (id, execInstant, text) = metadata
 
-        val waitingTime = Duration.between(ZonedDateTime.now(), execDateTime).toMillis()
+        val waitingTime = Duration.between(Instant.now(), execInstant).toMillis()
 
         return scope.launch {
             delay(waitingTime)
@@ -139,13 +139,13 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
         }
     }
 
-    suspend fun schedule(text: String, execDateTime: ZonedDateTime): ScheduledPost {
+    suspend fun schedule(text: String, execInstant: Instant): ScheduledPost {
         if (!supervisorJob.isActive)
             throw IllegalStateException("Tried to schedule a post, but the scheduler isn't running")
 
-        val postId = registry.insertAnnouncement(text, execDateTime)
+        val postId = registry.insertAnnouncement(text, execInstant)
 
-        val metadata = ScheduledPostMetadata(postId, execDateTime, text)
+        val metadata = ScheduledPostMetadata(postId, execInstant, text)
         val job = launchScheduled(metadata)
 
         val scheduledPost = ScheduledPost(metadata, job)
