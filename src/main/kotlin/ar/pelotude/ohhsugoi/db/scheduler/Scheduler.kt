@@ -1,5 +1,6 @@
 package ar.pelotude.ohhsugoi.db.scheduler
 
+import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import dev.kord.core.kordLogger
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -90,7 +91,7 @@ class Scheduler<T> private constructor(private val registry: ScheduledRegistry<T
 
     private val listeners = CopyOnWriteArrayList<SchedulerEventHandler<T>>()
 
-    private val webhook = System.getenv("DISCORD_WEBHOOK")
+    private val webhook: String by inject(qualifier = named("hookToken"))
 
     /** Launches and returns a job for the post described in [metadata].
      * This is meant to be used internally to construct a [ScheduledPost] to

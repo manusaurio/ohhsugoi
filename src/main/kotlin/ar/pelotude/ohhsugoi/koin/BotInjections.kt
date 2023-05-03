@@ -4,14 +4,21 @@ import ar.pelotude.ohhsugoi.bot.MangaExtensionConfiguration
 import ar.pelotude.ohhsugoi.db.DatabaseConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
+import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
+import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
 import dev.kord.common.entity.Snowflake
 import io.ktor.http.*
+import org.koin.core.qualifier.named
+import org.koin.dsl.binds
 import org.koin.dsl.module
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 
 val botModule = module {
-    single<MangaDatabase> { MangaDatabaseSQLite() }
+    single { MangaDatabaseSQLite() }.binds(arrayOf(MangaDatabase::class, ScheduledRegistry::class))
+
+    single<Scheduler<Long>> { Scheduler(get()) }
+
     single<MangaExtensionConfiguration> {
         MangaExtensionConfiguration(
             Snowflake(System.getenv("KORD_WEEB_SERVER")!!),
@@ -33,5 +40,9 @@ val botModule = module {
             System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
             Path.of(System.getenv("SQLITE_FILE_PATH")!!).apply { parent.createDirectories() }.toString(),
         )
+    }
+
+    single<String>(named("hookToken")) {
+        System.getenv("DISCORD_WEBHOOK")
     }
 }
