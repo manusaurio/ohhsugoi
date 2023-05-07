@@ -6,4 +6,4 @@ interface SchedulerEventHandler<T> {
 
 sealed class ScheduleEvent<T>(val post: ScheduledPostMetadata<T>)
 class Success<T>(post: ScheduledPostMetadata<T>): ScheduleEvent<T>(post)
-class Failure<T>(post: ScheduledPostMetadata<T>, reason: String): ScheduleEvent<T>(post)
+class Failure<T>(post: ScheduledPostMetadata<T>, val reason: String): ScheduleEvent<T>(post)
