@@ -2,10 +2,18 @@ package ar.pelotude.ohhsugoi.db.scheduler
 
 import java.time.Instant
 
+enum class Status(val code: Long) {
+    PENDING(0),
+    SENT(1),
+    CANCELLED(2),
+    FAILED(3),
+}
+
 class ScheduledPostMetadata<T>(
     val id: T,
     val execInstant: Instant,
     val text: String,
+    val status: Status = Status.PENDING,
 ) {
     override fun toString() = "ScheduledPostMetadata(id=$id, dateTime=$execInstant, text=\"$text\")"
 

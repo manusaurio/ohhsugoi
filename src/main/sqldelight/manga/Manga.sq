@@ -44,6 +44,13 @@ BEGIN
     UPDATE mangafts SET title = new.title WHERE manga_id = new.id;
 END;
 
+CREATE TABLE scheduled_announcement(
+  id INTEGER PRIMARY KEY NOT NULL,
+  content TEXT NOT NULL,
+  scheduled_date INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDING' -- PENDING, SENT, CANCELLED, FAILED
+);
+
 PRAGMA user_version = 2;
 
 searchTagTitle:
@@ -168,3 +175,18 @@ WHERE manga.deleted = 0
 GROUP BY manga.id
 HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
 LIMIT :limit;
+
+insertAnnouncement:
+INSERT INTO scheduled_announcement(content, scheduled_date) VALUES(:content, :scheduled_date) RETURNING id;
+
+markAnnouncementAsSent:
+UPDATE scheduled_announcement SET status = 'SENT' WHERE id = :id;
+
+markAnnouncementAsCancelled:
+UPDATE scheduled_announcement SET status = 'CANCELLED' WHERE id = :id;
+
+markAnnouncementAsFailed:
+UPDATE scheduled_announcement SET status = 'FAILED' WHERE id = :id;
+
+selectAnnouncements:
+SELECT id, content, scheduled_date, status FROM scheduled_announcement WHERE status = :status OR :status IS NULL;

@@ -20,5 +20,5 @@ interface ScheduledRegistry<T> {
 
     suspend fun markAsSent(id: T)
 
-    suspend fun getPendingAnnouncements(): Set<ScheduledPostMetadata<T>>
+    suspend fun getAnnouncements(status: Status?): Set<ScheduledPostMetadata<T>>
 }
