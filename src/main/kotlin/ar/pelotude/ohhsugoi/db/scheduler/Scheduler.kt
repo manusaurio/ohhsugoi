@@ -176,4 +176,8 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
     fun subscribe(o: SchedulerEventHandler<T>) = listeners.add(o)
 
     fun unsubscribe(o: SchedulerEventHandler<T>) = listeners.remove(o)
+
+    suspend fun getPosts(statusFilter: Status? = Status.PENDING): Set<ScheduledPostMetadata<T>> {
+        return registry.getAnnouncements(statusFilter)
+    }
 }
