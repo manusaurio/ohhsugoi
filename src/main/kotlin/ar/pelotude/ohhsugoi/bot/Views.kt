@@ -3,24 +3,26 @@ package ar.pelotude.ohhsugoi.bot
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import ar.pelotude.ohhsugoi.util.makeTitle
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.EphemeralSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.components.ephemeralButton
 import com.kotlindiscord.kord.extensions.types.edit
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondEphemeral
+import com.kotlindiscord.kord.extensions.types.respondPublic
 import dev.kord.common.Color
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 object colors {
     val info = Color (0, 0, 200)
@@ -128,36 +130,69 @@ suspend fun PublicSlashCommandContext<MangaExtension.EditArguments, *>.respondWi
     }
 }
 
-suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(description: String, title: String = "**Info**") {
-    respond {
-        embed {
-            this.title = title
-            this.description = description
+fun quickEmbed(title: String, description: String, color: Color) = EmbedBuilder().apply {
+    this.title = title
+    this.description = description
+    this.color = color
+}
 
-            color = colors.info
-        }
+suspend fun EphemeralSlashCommandContext<*, *>.respondWithInfo(description: String, title: String = "**Info**", public: Boolean = false) {
+    val embed = quickEmbed(title, description, colors.info)
+
+    if (public) respondPublic {
+        embeds.add(embed)
+    } else respond {
+        embeds.add(embed)
     }
 }
 
-suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: String, title: String = "**Éxito**") {
-    respond {
-        embed {
-            this.title = title
-            this.description = description
+suspend fun EphemeralSlashCommandContext<*, *>.respondWithSuccess(description: String, title: String = "**Éxito**", public: Boolean = false) {
+    val embed = quickEmbed(title, description, colors.success)
 
-            color = colors.success
-        }
+    if (public) respondPublic {
+        embeds.add(embed)
+    } else respond {
+        embeds.add(embed)
     }
 }
 
-suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String, title: String = "**Error**") {
-    respond {
-        embed {
-            this.title = title
-            this.description = description
+suspend fun EphemeralSlashCommandContext<*, *>.respondWithError(description: String, title: String = "**Error**", public: Boolean = false) {
+    val embed = quickEmbed(title, description, colors.error)
 
-            color = colors.error
-        }
+    if (public) respondPublic {
+        embeds.add(embed)
+    } else respond {
+        embeds.add(embed)
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(description: String, title: String = "**Info**", public: Boolean = true) {
+    val embed = quickEmbed(title, description, colors.info)
+
+    if (public) respond {
+        embeds.add(embed)
+    } else respondEphemeral {
+        embeds.add(embed)
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: String, title: String = "**Éxito**", public: Boolean = true) {
+    val embed = quickEmbed(title, description, colors.success)
+
+    if (public) respond {
+        embeds.add(embed)
+    } else respondEphemeral {
+        embeds.add(embed)
+    }
+}
+
+suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String, title: String = "**Error**", public: Boolean = true) {
+    val embed = quickEmbed(title, description, colors.error)
+
+    if (public) respond {
+        embeds.add(embed)
+    } else respondEphemeral {
+        embeds.add(embed)
     }
 }
 
