@@ -4,6 +4,7 @@ import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import dev.kord.core.kordLogger
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -68,6 +69,14 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
             json()
+        }
+
+        install(HttpRequestRetry) {
+            maxRetries = 3
+            retryIf { _, response -> !response.status.isSuccess() }
+            delayMillis { retry: Int ->
+                retry * 5000L
+            }
         }
 
         engine {
