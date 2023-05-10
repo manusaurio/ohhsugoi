@@ -7,11 +7,11 @@ import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
 import ar.pelotude.ohhsugoi.db.UsersDatabase
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
 import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
+import ar.pelotude.ohhsugoi.db.scheduler.SchedulerConfiguration
 import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import dev.kord.common.entity.Snowflake
 import io.ktor.http.*
-import org.koin.core.qualifier.named
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import java.nio.file.Path
@@ -55,7 +55,10 @@ val botModule = module {
         )
     }
 
-    single<String>(named("hookToken")) {
-        System.getenv("DISCORD_WEBHOOK")
+    single<SchedulerConfiguration> {
+        SchedulerConfiguration(
+                System.getenv("KORD_WEEB_SERVER")!!.toULong(),
+                System.getenv("DISCORD_WEBHOOK"),
+        )
     }
 }

@@ -4,6 +4,6 @@ interface SchedulerEventHandler<T> {
     fun handle(e: ScheduleEvent<T>)
 }
 
-sealed class ScheduleEvent<T>(val post: ScheduledPostMetadata<T>)
-class Success<T>(post: ScheduledPostMetadata<T>): ScheduleEvent<T>(post)
-class Failure<T>(post: ScheduledPostMetadata<T>, val reason: String): ScheduleEvent<T>(post)
+sealed class ScheduleEvent<T>(val post: ScheduledPostMetadataImpl<T>)
+class Success<T>(post: ScheduledPostMetadataImpl<T>): ScheduleEvent<T>(post)
+class Failure<T>(post: ScheduledPostMetadataImpl<T>, val reason: String): ScheduleEvent<T>(post)

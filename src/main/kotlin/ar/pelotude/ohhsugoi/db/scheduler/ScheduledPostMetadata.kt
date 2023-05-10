@@ -9,18 +9,27 @@ enum class Status(val code: Long) {
     FAILED(3),
 }
 
-class ScheduledPostMetadata<T>(
-    val id: T,
-    val execInstant: Instant,
-    val text: String,
-    val status: Status = Status.PENDING,
-) {
+interface ScheduledPostMetadata<T> {
+    val id: T
+    val execInstant: Instant
+    val text: String
+    val mentionId: ULong?
+    val status: Status
+}
+
+class ScheduledPostMetadataImpl<T>(
+        override val id: T,
+        override val execInstant: Instant,
+        override val text: String,
+        override val mentionId: ULong?,
+        override val status: Status = Status.PENDING,
+) : ScheduledPostMetadata<T> {
     override fun toString() = "ScheduledPostMetadata(id=$id, dateTime=$execInstant, text=\"$text\")"
 
     override fun hashCode() = id.hashCode() + execInstant.hashCode() + text.hashCode() * 31
 
     override fun equals(other: Any?): Boolean {
-        return if (other !is ScheduledPostMetadata<*>) false
+        return if (other !is ScheduledPostMetadataImpl<*>) false
         else id == other.id && execInstant == other.execInstant && text == other.text
     }
 
@@ -29,4 +38,8 @@ class ScheduledPostMetadata<T>(
     operator fun component2() = execInstant
 
     operator fun component3() = text
+
+    operator fun component4() = mentionId
+
+    operator fun component5() = status
 }

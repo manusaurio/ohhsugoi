@@ -11,8 +11,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerializationException
-import org.koin.core.component.inject
-import org.koin.core.qualifier.named
+import org.koin.core.component.get
 import java.io.IOException
 import java.time.Duration
 import java.time.Instant
@@ -21,6 +20,8 @@ import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = null): KordExKoinComponent {
+    private val config = get<SchedulerConfiguration>()
+
     private val supervisorJob = SupervisorJob(parent)
     private val exceptionHandler = CoroutineExceptionHandler { _, error ->
         when (error) {
@@ -34,22 +35,15 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
     /* scope only meant for scheduled posts */
     private val scope = CoroutineScope(supervisorJob + exceptionHandler).apply {
         launch {
-            registry.getPendingAnnouncements().forEach(::loadScheduled)
+            delay(1000)
+            registry.getAnnouncements(Status.PENDING).forEach(::loadScheduled)
         }
     }
 
-    inner class ScheduledPost(
-        private val metadata: ScheduledPostMetadata<T>,
-        private val job: Job,
-    ) {
-        val id
-            get() = metadata.id
-
-        val execInstant
-            get() = metadata.execInstant
-
-        val text
-            get() = metadata.text
+    private inner class ScheduledPost(
+            private val metadata: ScheduledPostMetadataImpl<T>,
+            private val job: Job,
+    ) : ScheduledPostMetadata<T> by metadata, Job by job {
 
         override fun hashCode() = metadata.hashCode() + job.hashCode() * 17
 
@@ -58,11 +52,6 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
             else metadata == other.metadata && job == other.job
         }
 
-        /** Stops this scheduled post locally and then tries to mark it as cancelled in the registry */
-        suspend fun cancel() {
-            job.cancel()
-            registry.markAsCancelled(id)
-        }
         override fun toString() = "ScheduledPost(id=$id, datetime=$execInstant, text=\"$text\", job=$job)"
     }
 
@@ -94,22 +83,36 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
 
     private val listeners = CopyOnWriteArrayList<SchedulerEventHandler<T>>()
 
-    private val webhook: String by inject(qualifier = named("hookToken"))
-
     /** Launches and returns a job for the post described in [metadata].
      * This is meant to be used internally to construct a [ScheduledPost] to
      * put into [scheduledPosts]. */
-    private fun launchScheduled(metadata: ScheduledPostMetadata<T>): Job {
+    private fun launchScheduled(metadata: ScheduledPostMetadataImpl<T>): Job {
         val (id, execInstant, text) = metadata
+        val mention: String? = metadata.mentionId?.let { mentionId ->
+            when (mentionId) {
+                config.discordGuildId -> "@everyone"
+                else -> "<@&$mentionId>"
+            }
+        }
 
         val waitingTime = Duration.between(Instant.now(), execInstant).toMillis()
 
         return scope.launch {
             delay(waitingTime)
 
-            client.post(webhook) {
+            client.post(config.webhook) {
                 contentType(ContentType.Application.Json)
-                setBody(DiscordHookMessage(content = text))
+                setBody(
+                        DiscordHookMessage(
+                                content = mention,
+                                embeds = listOf(
+                                        DiscordHookMessageEmbed(
+                                                null,
+                                                text
+                                        )
+                                )
+                        )
+                )
             }.status.run {
                 // we prevent `markAs...` cancellation to make
                 // sure the new state is reflected in the database
@@ -131,7 +134,7 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
 
     /** Sets everything up for a job and launches it. This is
      * meant to be used with posts stored in the registry only. */
-    private fun loadScheduled(metadata: ScheduledPostMetadata<T>) {
+    private fun loadScheduled(metadata: ScheduledPostMetadataImpl<T>) {
         val job = launchScheduled(metadata)
 
         val scheduledPost = ScheduledPost(metadata, job)
@@ -143,13 +146,13 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
         }
     }
 
-    suspend fun schedule(text: String, execInstant: Instant): ScheduledPost {
+    suspend fun schedule(text: String, execInstant: Instant, mentionId: ULong?): ScheduledPostMetadata<T> {
         if (!supervisorJob.isActive)
             throw IllegalStateException("Tried to schedule a post, but the scheduler isn't running")
 
-        val postId = registry.insertAnnouncement(text, execInstant)
+        val postId = registry.insertAnnouncement(text, execInstant, mentionId)
 
-        val metadata = ScheduledPostMetadata(postId, execInstant, text)
+        val metadata = ScheduledPostMetadataImpl(postId, execInstant, text, mentionId)
         val job = launchScheduled(metadata)
 
         val scheduledPost = ScheduledPost(metadata, job)
@@ -168,12 +171,16 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
 
     operator fun contains(k: T) = k in scheduledPosts
 
-    operator fun get(k: T): ScheduledPost? = scheduledPosts[k]
+    suspend fun get(k: T): ScheduledPostMetadata<T>? {
+        return scheduledPosts[k] ?: registry.getAnnouncement(k)
+    }
 
     /** Cancels a scheduled post. */
-    suspend fun cancel(k: T) = scheduledPosts[k]?.let { post ->
-        registry.markAsCancelled(k)
-        post.cancel()
+    suspend fun cancel(k: T): Boolean {
+        registry.markAsCancelled(k).let { success ->
+            if (success) scheduledPosts[k]?.cancel()
+            return success
+        }
     }
 
     /** Suspends until this scheduler is stopped. */
@@ -186,7 +193,7 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
 
     fun unsubscribe(o: SchedulerEventHandler<T>) = listeners.remove(o)
 
-    suspend fun getPosts(statusFilter: Status? = Status.PENDING): Set<ScheduledPostMetadata<T>> {
+    suspend fun getPosts(statusFilter: Status? = Status.PENDING): Set<ScheduledPostMetadataImpl<T>> {
         return registry.getAnnouncements(statusFilter)
     }
 }
