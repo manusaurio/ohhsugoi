@@ -20,7 +20,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-class ZonedDateTimeConverter(override var validator: Validator<ZonedDateTime> = null) : SingleConverter<ZonedDateTime>(), KordExKoinComponent{
+class ZonedDateTimeConverter(override var validator: Validator<ZonedDateTime> = null) : SingleConverter<ZonedDateTime>(), KordExKoinComponent {
     override val signatureTypeString: String = "converters.zdt.signatureType"
 
     private val pattern: String = "d/M/yyyy H:mm"
@@ -31,7 +31,7 @@ class ZonedDateTimeConverter(override var validator: Validator<ZonedDateTime> = 
     private val userDatabase: UsersDatabase by inject()
 
     override suspend fun parse(parser: StringParser?, context: CommandContext, named: String?): Nothing {
-        throw UnsupportedOperationException()
+        throw UnsupportedOperationException("This converter only works with slash commands.")
     }
 
     override suspend fun parseOption(context: CommandContext, option: OptionValue<*>): Boolean {

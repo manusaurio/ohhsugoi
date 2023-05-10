@@ -4,8 +4,11 @@ import ar.pelotude.ohhsugoi.bot.MangaExtensionConfiguration
 import ar.pelotude.ohhsugoi.db.DatabaseConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
+import ar.pelotude.ohhsugoi.db.UsersDatabase
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
 import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
+import com.kotlindiscord.kord.extensions.DiscordRelayedException
+import com.kotlindiscord.kord.extensions.commands.CommandContext
 import dev.kord.common.entity.Snowflake
 import io.ktor.http.*
 import org.koin.core.qualifier.named
@@ -15,9 +18,19 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 
 val botModule = module {
-    single { MangaDatabaseSQLite() }.binds(arrayOf(MangaDatabase::class, ScheduledRegistry::class))
+    single { MangaDatabaseSQLite() } binds arrayOf(MangaDatabase::class, ScheduledRegistry::class, UsersDatabase::class)
 
     single<Scheduler<Long>> { Scheduler(get()) }
+
+    single<suspend (String, CommandContext) -> Long> {
+        { value, context ->
+            try {
+                value.toLong()
+            } catch (e: NumberFormatException) {
+                throw DiscordRelayedException(context.translate("converters.zdt.error.missingzid"))
+            }
+        }
+    }
 
     single<MangaExtensionConfiguration> {
         MangaExtensionConfiguration(

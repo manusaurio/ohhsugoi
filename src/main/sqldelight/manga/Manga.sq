@@ -51,6 +51,11 @@ CREATE TABLE scheduled_announcement(
   status TEXT NOT NULL DEFAULT 'PENDING' -- PENDING, SENT, CANCELLED, FAILED
 );
 
+CREATE TABLE discord_user_timezone(
+  snowflake_id TEXT PRIMARY KEY NOT NULL,
+  timezone TEXT
+);
+
 PRAGMA user_version = 2;
 
 searchTagTitle:
@@ -190,3 +195,10 @@ UPDATE scheduled_announcement SET status = 'FAILED' WHERE id = :id;
 
 selectAnnouncements:
 SELECT id, content, scheduled_date, status FROM scheduled_announcement WHERE status = :status OR :status IS NULL;
+
+insertUser:
+INSERT INTO discord_user_timezone(snowflake_id, timezone) VALUES (:snowflake_id, :timezone)
+ON CONFLICT(snowflake_id) DO UPDATE SET timezone=:timezone;
+
+getUser:
+SELECT dut.snowflake_id, dut.timezone FROM discord_user_timezone dut WHERE snowflake_id = :snowflake_id;
