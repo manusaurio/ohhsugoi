@@ -5,9 +5,12 @@ import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.Argument
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.CommandContext
+import com.kotlindiscord.kord.extensions.commands.converters.ConverterToOptional
+import com.kotlindiscord.kord.extensions.commands.converters.OptionalConverter
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
 import com.kotlindiscord.kord.extensions.commands.converters.Validator
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ConverterBuilder
+import com.kotlindiscord.kord.extensions.commands.converters.builders.OptionalConverterBuilder
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.parser.StringParser
 import dev.kord.core.entity.interaction.OptionValue
@@ -20,7 +23,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-class ZonedDateTimeConverter(override var validator: Validator<ZonedDateTime> = null) : SingleConverter<ZonedDateTime>(), KordExKoinComponent {
+class ZonedDateTimeConverter(override val required: Boolean) : SingleConverter<ZonedDateTime>(), KordExKoinComponent {
+    override var validator: Validator<ZonedDateTime> = null
     override val signatureTypeString: String = "converters.zdt.signatureType"
 
     private val pattern: String = "d/M/yyyy H:mm"
@@ -74,19 +78,48 @@ class ZonedDateTimeConverter(override var validator: Validator<ZonedDateTime> = 
     override suspend fun toSlashOption(arg: Argument<*>): OptionsBuilder {
         return StringChoiceBuilder(arg.displayName, arg.description).apply {
             maxLength = 25
-            required = true
+            this@apply.required = this@ZonedDateTimeConverter.required
         }
     }
 }
 
 class ZonedDateTimeConverterBuilder : ConverterBuilder<ZonedDateTime>() {
     override fun build(arguments: Arguments): SingleConverter<ZonedDateTime> {
-        return arguments.arg(name, description, ZonedDateTimeConverter().withBuilder(this))
+        return arguments.arg(
+            name,
+            description,
+            ZonedDateTimeConverter(required=true)
+                .withBuilder(this)
+        )
+    }
+}
+
+class OptionalZonedDateTimeConverterBuilder : OptionalConverterBuilder<ZonedDateTime>() {
+    @OptIn(ConverterToOptional::class)
+    override fun build(arguments: Arguments): OptionalConverter<ZonedDateTime> {
+        return arguments.arg(
+            name,
+            description,
+            ZonedDateTimeConverter(required=false)
+                .toOptional()
+                .apply {
+                    required
+                }
+                .withBuilder(this)
+        )
     }
 }
 
 fun Arguments.date(body: ZonedDateTimeConverterBuilder.() -> Unit): SingleConverter<ZonedDateTime> {
     val converterBuilder = ZonedDateTimeConverterBuilder()
+    converterBuilder.body()
+    converterBuilder.validateArgument()
+
+    return converterBuilder.build(this)
+}
+
+fun Arguments.optionalDate(body: OptionalZonedDateTimeConverterBuilder.() -> Unit): OptionalConverter<ZonedDateTime> {
+    val converterBuilder = OptionalZonedDateTimeConverterBuilder()
     converterBuilder.body()
     converterBuilder.validateArgument()
 
