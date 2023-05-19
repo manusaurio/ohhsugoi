@@ -104,11 +104,10 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
                 contentType(ContentType.Application.Json)
                 setBody(
                         DiscordHookMessage(
-                                content = mention,
-                                embeds = listOf(
+                                content=mention,
+                                embeds=listOf(
                                         DiscordHookMessageEmbed(
-                                                null,
-                                                text
+                                            description=text
                                         )
                                 )
                         )
