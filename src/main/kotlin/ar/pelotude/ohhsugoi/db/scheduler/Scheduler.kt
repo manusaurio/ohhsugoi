@@ -33,12 +33,7 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
     }
 
     /* scope only meant for scheduled posts */
-    private val scope = CoroutineScope(supervisorJob + exceptionHandler).apply {
-        launch {
-            delay(1000)
-            registry.getAnnouncements(Status.PENDING).forEach(::loadScheduled)
-        }
-    }
+    private val scope = CoroutineScope(supervisorJob + exceptionHandler)
 
     private inner class ScheduledPost(
             private val metadata: ScheduledPostMetadataImpl<T>,
