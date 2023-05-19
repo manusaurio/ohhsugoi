@@ -14,3 +14,6 @@ Environment variables:
 | `MANGA_COVERS_URL_SUBDIRECTORY` | Path of the URL where images can be found (i.e.: `/static/manga`)      |
 | `MANGA_IMAGE_DIRECTORY`         | Path where images should be saved to (i.e. `/home/myuser/mangacovers`) |
 | `SQLITE_FILE_PATH`              | Path to the sqlite file                                                |
+| `DISCORD_HELPER_ROLE`           | Role allowed to use some advanced features                             |
+| `DISCORD_WEBHOOK`               | Webhook URL to send Discord announcements                              |
+| `DISCORD_LOGGER_CHANNEL`        | Channel id to be used as a log when errors arise or other information  |

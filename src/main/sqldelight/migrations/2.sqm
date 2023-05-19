@@ -1,0 +1,14 @@
+CREATE TABLE scheduled_announcement(
+  id INTEGER PRIMARY KEY NOT NULL,
+  content TEXT NOT NULL,
+  scheduled_date INTEGER NOT NULL,
+  mention_snowflake_id TEXT,
+  status TEXT NOT NULL DEFAULT 'PENDING' -- PENDING, SENT, CANCELLED, FAILED
+);
+
+CREATE TABLE discord_user_timezone(
+  snowflake_id TEXT PRIMARY KEY NOT NULL,
+  timezone TEXT
+);
+
+PRAGMA user_version = 3;

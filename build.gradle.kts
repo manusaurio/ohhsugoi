@@ -1,10 +1,11 @@
 import kotlin.io.path.div
 import kotlin.io.path.readLines
 
-version = "0.0.1a"
+version = "0.1.0a"
 
 plugins {
-    kotlin("jvm") version "1.6.10"  // I hate that my LSP on Emacs can't get along with recent versions
+    kotlin("jvm") version "1.8.20"
+    kotlin("plugin.serialization") version "1.6.10"
     id("app.cash.sqldelight") version "2.0.0-alpha05"
     application
 }
@@ -15,6 +16,7 @@ repositories {
 
 dependencies {
     implementation("dev.kord", "kord-core", "0.8.0-M17")
+
     implementation("app.cash.sqldelight", "sqlite-driver", "2.0.0-alpha05")
     implementation("app.cash.sqldelight", "primitive-adapters", "2.0.0-alpha05")
     implementation("org.slf4j", "slf4j-simple","2.0.7")
@@ -22,6 +24,13 @@ dependencies {
 
     implementation("com.twelvemonkeys.imageio", "imageio-jpeg", "3.9.4")
     implementation("com.twelvemonkeys.imageio", "imageio-webp", "3.9.4")
+
+    val ktorVersion = "2.3.0"
+
+    implementation("io.ktor", "ktor-client-core-jvm", ktorVersion)
+    implementation("io.ktor", "ktor-client-cio-jvm", ktorVersion)
+    implementation("io.ktor", "ktor-serialization-kotlinx-json-jvm", ktorVersion)
+    implementation("io.ktor", "ktor-client-content-negotiation-jvm", ktorVersion)
 }
 
 application {
