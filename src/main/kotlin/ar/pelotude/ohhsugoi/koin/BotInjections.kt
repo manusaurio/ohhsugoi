@@ -3,6 +3,7 @@ package ar.pelotude.ohhsugoi.koin
 import ar.pelotude.ohhsugoi.bot.GeneralConfiguration
 import ar.pelotude.ohhsugoi.bot.GeneralConfigurationImpl
 import ar.pelotude.ohhsugoi.bot.MangaExtensionConfiguration
+import ar.pelotude.ohhsugoi.bot.UtilsExtensionConfiguration
 import ar.pelotude.ohhsugoi.db.DatabaseConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
@@ -61,6 +62,13 @@ val botModule = module {
             Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
             System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
             Path.of(System.getenv("SQLITE_FILE_PATH")!!).apply { parent.createDirectories() }.toString(),
+        )
+    }
+
+    single<UtilsExtensionConfiguration> {
+        UtilsExtensionConfiguration(
+                Snowflake(System.getenv("DISCORD_HELPER_ROLE")!!),
+                get(),
         )
     }
 
