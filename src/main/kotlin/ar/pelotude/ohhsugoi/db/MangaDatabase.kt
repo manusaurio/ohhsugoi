@@ -5,6 +5,9 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.db.Database
 import ar.pelotude.ohhsugoi.*
+import ar.pelotude.ohhsugoi.db.scheduler.ScheduledPostMetadataImpl
+import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
+import ar.pelotude.ohhsugoi.db.scheduler.Status
 import ar.pelotude.ohhsugoi.util.image.downloadImage
 import ar.pelotude.ohhsugoi.util.image.saveAsJpg
 import ar.pelotude.ohhsugoi.util.uuidString
@@ -18,11 +21,13 @@ import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 import java.io.IOException
 import java.net.URL
+import java.time.Instant
+import java.time.ZoneId
 import kotlin.io.path.div
 
 class MangaDatabaseSQLite(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
-) : MangaDatabase, KordExKoinComponent {
+) : MangaDatabase, UsersDatabase, ScheduledRegistry<Long>, KordExKoinComponent {
     internal val dbConfig: DatabaseConfiguration by inject()
 
     private val driver: SqlDriver = JdbcSqliteDriver("jdbc:sqlite:${dbConfig.sqlitePath}")
@@ -243,6 +248,94 @@ class MangaDatabaseSQLite(
     override suspend fun searchTags(name: String, limit: Long): Collection<String> {
         return withContext(dispatcher) {
             queries.searchTagTitle(name, limit).executeAsList()
+        }
+    }
+
+    override suspend fun insertAnnouncement(content: String, scheduledDateTime: Instant, mentionId: ULong?): Long {
+        return withContext(dispatcher) {
+            queries.insertAnnouncement(content, scheduledDateTime.epochSecond, mentionId?.toString()).executeAsOne()
+        }
+    }
+
+    override suspend fun getAnnouncement(id: Long): ScheduledPostMetadataImpl<Long>? {
+        return withContext(dispatcher) {
+            queries.selectAnnouncement(id) { id, content, date, mentionIdStr, status ->
+                ScheduledPostMetadataImpl(
+                    id,
+                    Instant.ofEpochSecond(date),
+                    content,
+                    mentionIdStr?.toULong(),
+                    Status.valueOf(status),
+                )
+            }.executeAsOneOrNull()
+        }
+    }
+
+    override suspend fun getAnnouncements(status: Status?): Set<ScheduledPostMetadataImpl<Long>> {
+        return withContext(dispatcher) {
+            queries.selectAnnouncements(status?.name) { id, content, date, mentionIdStr, status ->
+                ScheduledPostMetadataImpl(
+                    id,
+                    Instant.ofEpochSecond(date),
+                    content,
+                    mentionIdStr?.toULong(),
+                    Status.valueOf(status),
+                )
+            }.executeAsList().toSet()
+        }
+    }
+
+    override suspend fun removeMentionRoleFrom(id: Long): Boolean {
+        return withContext(dispatcher) {
+            queries.unsetMentionFromAnnouncement(id).executeAsOneOrNull() != null
+        }
+    }
+
+    override suspend fun editAnnouncement(
+        id: Long,
+        content: String?,
+        scheduledDateTime: Instant?,
+        mentionRole: ULong?
+    ): Boolean {
+        return withContext(dispatcher) {
+            queries.editAnnouncement(
+                id=id,
+                content=content,
+                mentionId=mentionRole?.toString(),
+                date=scheduledDateTime?.epochSecond,
+            ).executeAsOneOrNull() != null
+        }
+    }
+
+    override suspend fun markAsCancelled(id: Long): Boolean {
+        return withContext(dispatcher) {
+            queries.markAnnouncementAsCancelled(id).executeAsOneOrNull() != null
+        }
+    }
+
+    override suspend fun markAsSent(id: Long): Boolean {
+        return withContext(dispatcher) {
+            queries.markAnnouncementAsSent(id).executeAsOneOrNull() != null
+        }
+    }
+
+    override suspend fun markAsFailed(id: Long): Boolean {
+        return withContext(dispatcher) {
+            queries.markAnnouncementAsFailed(id).executeAsOneOrNull() != null
+        }
+    }
+
+    override suspend fun setUser(user: UserData) {
+        withContext(dispatcher) {
+            queries.insertUser(user.snowflakeId.toString(), user.zone.toString())
+        }
+    }
+
+    override suspend fun getUser(snowflake: ULong): UserData? {
+        return withContext(dispatcher) {
+            queries.getUser(snowflake.toString()) { id, zone ->
+                UserData(id.toULong(), ZoneId.of(zone))
+            }.executeAsOneOrNull()
         }
     }
 }
