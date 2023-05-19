@@ -23,4 +23,8 @@ interface ScheduledRegistry<T> {
     suspend fun getAnnouncements(status: Status?): Set<ScheduledPostMetadataImpl<T>>
 
     suspend fun getAnnouncement(id: T): ScheduledPostMetadataImpl<T>?
+
+    suspend fun editAnnouncement(id: T, content: String?, scheduledDateTime: Instant?, mentionRole: ULong?): Boolean
+
+    suspend fun removeMentionRoleFrom(id: T): Boolean
 }

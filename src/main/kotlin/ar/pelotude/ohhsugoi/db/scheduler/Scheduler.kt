@@ -132,6 +132,14 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
         }
     }
 
+    /** Loads pending messages from the database.
+     * This should be called after every relevant listener has
+     * subscribed to the scheduler, so they don't miss the first
+     * possible events. */
+    suspend fun synchronize() {
+        registry.getAnnouncements(Status.PENDING).forEach(::loadScheduled)
+    }
+
     /** Sets everything up for a job and launches it. This is
      * meant to be used with posts stored in the registry only. */
     private fun loadScheduled(metadata: ScheduledPostMetadataImpl<T>) {
@@ -195,5 +203,36 @@ class Scheduler<T> (private val registry: ScheduledRegistry<T>, parent: Job? = n
 
     suspend fun getPosts(statusFilter: Status? = Status.PENDING): Set<ScheduledPostMetadataImpl<T>> {
         return registry.getAnnouncements(statusFilter)
+    }
+
+    private suspend fun refresh(k: T) {
+        // this is a safe way to refresh without synchronizing possible concurrency
+        scheduledPosts[k]?.cancel()
+        loadScheduled(registry.getAnnouncement(k)!!)
+    }
+
+    suspend fun editPost(k : T, newContent: String? = null, newMentionRole: ULong? = null, newExecInstant: Instant? = null): Boolean {
+        registry.editAnnouncement(
+            k,
+            content=newContent,
+            scheduledDateTime=newExecInstant,
+            mentionRole=newMentionRole,
+        ).let { success ->
+            if (success) {
+                refresh(k)
+            }
+
+            return success
+        }
+    }
+
+    suspend fun removeMention(k: T): Boolean {
+        registry.removeMentionRoleFrom(k).let { success ->
+            if (success) {
+                refresh(k)
+            }
+
+            return success
+        }
     }
 }
