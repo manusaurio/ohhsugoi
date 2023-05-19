@@ -1,5 +1,7 @@
 package ar.pelotude.ohhsugoi.koin
 
+import ar.pelotude.ohhsugoi.bot.GeneralConfiguration
+import ar.pelotude.ohhsugoi.bot.GeneralConfigurationImpl
 import ar.pelotude.ohhsugoi.bot.MangaExtensionConfiguration
 import ar.pelotude.ohhsugoi.db.DatabaseConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
@@ -12,6 +14,7 @@ import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import dev.kord.common.entity.Snowflake
 import io.ktor.http.*
+import org.koin.core.qualifier.named
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import java.nio.file.Path
@@ -32,22 +35,28 @@ val botModule = module {
         }
     }
 
+    single<GeneralConfiguration> {
+        GeneralConfigurationImpl(
+            Snowflake(System.getenv("KORD_WEEB_SERVER")!!),
+        )
+    }
+
     single<MangaExtensionConfiguration> {
         MangaExtensionConfiguration(
-            Snowflake(System.getenv("KORD_WEEB_SERVER")!!),
             Snowflake(System.getenv("KORD_WEEB_ROLE")!!),
-            256,
-            1,
-            100,
-            20,
-            512,
+            mangaLinkMaxLength=256,
+            mangaTitleMinLength=1,
+            mangaTitleMaxLength=100,
+            mangaDescMinLength=20,
+            mangaDescMaxLength=512,
+            get<GeneralConfiguration>(),
         )
     }
 
     single<DatabaseConfiguration> {
         DatabaseConfiguration(
-            225,
-            340,
+            mangaCoversWidth=225,
+            mangaCoversHeight=340,
             Url(System.getenv("WEBPAGE")),
             Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
             System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
@@ -60,5 +69,9 @@ val botModule = module {
                 System.getenv("KORD_WEEB_SERVER")!!.toULong(),
                 System.getenv("DISCORD_WEBHOOK"),
         )
+    }
+
+    single<Snowflake>(named("loggerChannel")) {
+        Snowflake(System.getenv("DISCORD_LOGGER_CHANNEL").toLong())
     }
 }
