@@ -136,13 +136,13 @@ class MangaExtension: Extension(), KordExKoinComponent {
             minValue = 1
         }
 
-        val pagesPerChapter by optionalLong {
+        val pagesPerChapter by long {
             name = "páginasporcapítulo"
             description ="Cantidad de páginas aproximada por capítulo"
             minValue = 1
         }
 
-        val volumes by optionalLong {
+        val volumes by long {
             name = "tomos"
             description = "Cantidad de tomos del manga"
             minValue = 1
@@ -413,22 +413,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
             }
             
             action {
-                val chapters = arguments.chapters
-                val volumes = arguments.volumes
-                val ppv = arguments.pagesPerVolume
-
-                val ppc = arguments.pagesPerChapter ?: if (ppv != null && volumes != null)
-                    ppv * volumes / chapters
-                else -1
-
-                val validPpc: Boolean = ppc > 0
-
-                if (!validPpc) {
-                    respondWithError(
-                        description="Especifica la cantidad de páginas por capítulo o valores" +
-                                " en otros argumentos que me permitan computarlo!"
-                    )
-                } else try {
+                try {
                     val imgURLSource: URL? = arguments.image?.let { URL(it.url) }
 
                     val insertedManga = db.addManga(
@@ -437,10 +422,10 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         imgURLSource = imgURLSource,
                         link = arguments.link,
                         demographic = arguments.demographic,
-                        volumes = volumes,
-                        pagesPerVolume = ppv,
-                        chapters = chapters,
-                        pagesPerChapter = ppc,
+                        volumes = arguments.volumes,
+                        pagesPerVolume = arguments.pagesPerVolume,
+                        chapters = arguments.chapters,
+                        pagesPerChapter = arguments.pagesPerChapter,
                         tags = arguments.tags.toTagSet(),
                         read = false
                     )
