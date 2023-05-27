@@ -90,10 +90,9 @@ class OptionalGenericListConverterBuilder<T: Any>(private val convertOrNull: (St
                         convertOrNull,
                         minLength=minLength,
                         maxLength=maxLength,
-                        validator=validator,
                         required=false
                 )
-                        .toOptional()
+                        .toOptional(outputError=true, nestedValidator=validator)
                         .withBuilder(this)
         )
     }

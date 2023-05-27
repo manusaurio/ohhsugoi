@@ -41,8 +41,8 @@ class OptionalLongListConverterBuilder : OptionalConverterBuilder<List<Long>>() 
         return arguments.arg(
                 name,
                 description,
-                LongListConverter(minLength=minLength, maxLength=maxLength, validator=validator, required=false)
-                        .toOptional()
+                LongListConverter(minLength=minLength, maxLength=maxLength, required=false)
+                        .toOptional(outputError=true, nestedValidator=validator)
                         .withBuilder(this)
         )
     }
