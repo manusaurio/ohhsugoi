@@ -4,6 +4,7 @@ import ar.pelotude.ohhsugoi.db.MangaChanges
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.UpdateFlags
 import ar.pelotude.ohhsugoi.db.demographics
+import ar.pelotude.ohhsugoi.util.identity
 import ar.pelotude.ohhsugoi.util.image.UnsupportedDownloadException
 import ar.pelotude.ohhsugoi.util.isValidURL
 import com.kotlindiscord.kord.extensions.checks.hasRole
@@ -36,8 +37,6 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
     private fun Attachment?.isValidImage(): Boolean =
             this == null || isImage && size < 8000000
-
-    private fun String.toTagSet() = split(',').map(String::trim).toSet()
 
     val titleAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
         val typedIn = focusedOption.value
@@ -118,12 +117,13 @@ class MangaExtension: Extension(), KordExKoinComponent {
             }
         }
 
-        val tags by string {
+        val tags by list(identity()) {
             name = "tags"
             description ="Géneros del manga. Dividir por coma: \"tag uno, tag dos\""
+
             validate {
                 failIf("No hay tags po sacowea") {
-                    value.split(',').all(String::isBlank)
+                    value.isEmpty()
                 }
             }
 
@@ -191,16 +191,14 @@ class MangaExtension: Extension(), KordExKoinComponent {
     }
 
     inner class GroupMangaEntriesArguments: Arguments() {
-        val ids by string {
+        val ids by longList {
             name = "ids"
             description = "ids de los mangas a listar, separadas por coma. Por ejemplo: 3, 5, 1"
             maxLength = 50
 
             validate {
-                failIfNot("Sólo lista hasta 20 ids separadas por coma") {
-                    val values = value.split(",").map(String::trim).mapNotNull(String::toLongOrNull)
-
-                    values.size in 1..20
+                failIfNot("Sólo lista entre 1 y 20 ids separadas por coma") {
+                    value.size in 1..20
                 }
             }
         }
@@ -280,24 +278,24 @@ class MangaExtension: Extension(), KordExKoinComponent {
             }
         }
 
-        val addTags by optionalString {
+        val addTags by optionalList(identity()) {
             name = "nuevostags"
             description = "Nuevos tags para este título"
             validate {
                 failIf("No hay tags po sacowea") {
-                    value!!.split(',').all(String::isBlank)
+                    value!!.isEmpty()
                 }
             }
 
             autoCompleteCallback = multipleTagsAutoCompletion
         }
 
-        val removeTags by optionalString {
+        val removeTags by optionalList(identity()) {
             name = "removertags"
             description = "Tags a ser removidos"
             validate {
                 failIf("No hay tags po sacowea") {
-                    value!!.split(',').all(String::isBlank)
+                    value!!.isEmpty()
                 }
             }
 
@@ -377,9 +375,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
             guild(config.guild)
 
             action {
-                val ids = arguments.ids.split(",").mapNotNull { it.trim().toLongOrNull() }.toLongArray()
-
-                val mangaList = db.getMangas(*ids).toList()
+                val mangaList = db.getMangas(*arguments.ids.toLongArray()).toList()
 
                 when {
                     mangaList.isEmpty() -> respondWithInfo(
@@ -426,7 +422,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         pagesPerVolume = arguments.pagesPerVolume,
                         chapters = arguments.chapters,
                         pagesPerChapter = arguments.pagesPerChapter,
-                        tags = arguments.tags.toTagSet(),
+                        tags = arguments.tags.toSet(),
                         read = false
                     )
 
@@ -495,8 +491,8 @@ class MangaExtension: Extension(), KordExKoinComponent {
                             chapters=chapters,
                             pagesPerChapter=pagesPerChapter,
                             demographic=demographic,
-                            tagsToAdd=addTags?.toTagSet(),
-                            tagsToRemove=removeTags?.toTagSet(),
+                            tagsToAdd=addTags?.toSet(),
+                            tagsToRemove=removeTags?.toSet(),
                             read=null,
                         )
                     }

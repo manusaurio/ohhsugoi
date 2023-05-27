@@ -26,3 +26,5 @@ fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.title
 
 /** But like in "This is a title", not "This Is A Title" */
 fun String.makeTitle() = this.lowercase().capitalize()
+
+inline fun <T> identity(): (T) -> T  = { it }
