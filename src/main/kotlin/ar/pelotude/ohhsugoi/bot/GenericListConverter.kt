@@ -7,6 +7,7 @@ import com.kotlindiscord.kord.extensions.commands.CommandContext
 import com.kotlindiscord.kord.extensions.commands.converters.ConverterToOptional
 import com.kotlindiscord.kord.extensions.commands.converters.OptionalConverter
 import com.kotlindiscord.kord.extensions.commands.converters.SingleConverter
+import com.kotlindiscord.kord.extensions.commands.converters.Validator
 import com.kotlindiscord.kord.extensions.commands.converters.builders.ConverterBuilder
 import com.kotlindiscord.kord.extensions.commands.converters.builders.OptionalConverterBuilder
 import com.kotlindiscord.kord.extensions.parser.StringParser
@@ -19,6 +20,7 @@ open class GenericListConverter<T: Any> (
         val convertOrNull: (String) -> T?,
         val minLength: Int? = null,
         val maxLength: Int? = null,
+        override var validator: Validator<List<T>> = null,
         override val required: Boolean = false
 ): SingleConverter<List<T>>() {
     open val errorTranslationKey: String = "converters.unspecifiedListConverter.error.parse"
@@ -56,19 +58,27 @@ open class GenericListConverter<T: Any> (
 }
 
 open class GenericListConverterBuilder<T: Any>(private val convertOrNull: (String) -> T?) : ConverterBuilder<List<T>>() {
+    var minLength: Int? = null
     var maxLength: Int? = null
 
     override fun build(arguments: Arguments): SingleConverter<List<T>> {
         return arguments.arg(
                 name,
                 description,
-                GenericListConverter(convertOrNull, maxLength=maxLength, required=true)
+                GenericListConverter(
+                        convertOrNull,
+                        minLength=minLength,
+                        maxLength=maxLength,
+                        validator=validator,
+                        required=true
+                )
                         .withBuilder(this)
         )
     }
 }
 
 class OptionalGenericListConverterBuilder<T: Any>(private val convertOrNull: (String) -> T?) : OptionalConverterBuilder<List<T>>() {
+    var minLength: Int? = null
     var maxLength: Int? = null
 
     @OptIn(ConverterToOptional::class)
@@ -76,7 +86,13 @@ class OptionalGenericListConverterBuilder<T: Any>(private val convertOrNull: (St
         return arguments.arg(
                 name,
                 description,
-                GenericListConverter(convertOrNull, maxLength=maxLength, required=false)
+                GenericListConverter(
+                        convertOrNull,
+                        minLength=minLength,
+                        maxLength=maxLength,
+                        validator=validator,
+                        required=false
+                )
                         .toOptional()
                         .withBuilder(this)
         )
