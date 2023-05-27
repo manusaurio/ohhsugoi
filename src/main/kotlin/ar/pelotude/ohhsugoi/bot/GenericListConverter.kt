@@ -71,8 +71,7 @@ open class GenericListConverterBuilder<T: Any>(private val convertOrNull: (Strin
                         maxLength=maxLength,
                         validator=validator,
                         required=true
-                )
-                        .withBuilder(this)
+                ).withBuilder(this)
         )
     }
 }
@@ -91,9 +90,7 @@ class OptionalGenericListConverterBuilder<T: Any>(private val convertOrNull: (St
                         minLength=minLength,
                         maxLength=maxLength,
                         required=false
-                )
-                        .toOptional(outputError=true, nestedValidator=validator)
-                        .withBuilder(this)
+                ).toOptional(outputError=true, nestedValidator=validator).withBuilder(this)
         )
     }
 }
