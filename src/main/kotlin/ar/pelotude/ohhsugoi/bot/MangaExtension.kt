@@ -16,6 +16,7 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.respond
+import com.kotlindiscord.kord.extensions.types.respondEphemeral
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import com.kotlindiscord.kord.extensions.utils.suggestStringCollection
 import dev.kord.core.behavior.interaction.suggestString
@@ -325,7 +326,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val (title, tag, demographic) = with (arguments) { Triple(title, tag, demographic) }
 
                 if (listOf(title, tag, demographic).all { it == null }) {
-                    respond { content = "Debes especificar al menos un criterio." }
+                    respondEphemeral { content = "Debes especificar al menos un criterio." }
                     return@action
                 }
 
@@ -337,19 +338,19 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 when {
                     mangaList.isEmpty() -> respondWithInfo(
-                        title="Sin resultados",
-                        description="No se encontró nada similar a lo buscado:\n\n$filterDescription"
+                            title="Sin resultados",
+                            description="No se encontró nada similar a lo buscado:\n\n$filterDescription",
+                            public=true,
                     )
-
 
                     mangaList.size == 1 -> respond {
                         embeds.add(EmbedBuilder().mangaView(mangaList.first()))
                     }
 
                     mangaList.size < 5 -> respondWithSuccess(
-                            "Encontrados ${mangaList.size} resultados\n\n",
-                            filterDescription +
-                                    mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" }
+                            description="Encontrados ${mangaList.size} resultados\n\n",
+                            title=filterDescription +
+                                    mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" },
                         )
 
                     else -> respondingPaginator {
@@ -379,8 +380,9 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 when {
                     mangaList.isEmpty() -> respondWithInfo(
-                        title="Sin resultados",
-                        description="No se encontró nada similar a lo buscado"
+                            title="Sin resultados",
+                            description="No se encontró nada similar a lo buscado",
+                            public=true,
                     )
 
                     mangaList.size == 1 -> respond {
