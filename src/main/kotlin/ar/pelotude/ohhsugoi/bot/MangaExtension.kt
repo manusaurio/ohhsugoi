@@ -133,19 +133,19 @@ class MangaExtension: Extension(), KordExKoinComponent {
             autoCompleteCallback = multipleTagsAutoCompletion
         }
 
-        val chapters by long {
+        val chapters by optionalLong {
             name = "capítulos"
             description ="Cantidad de capítulos del manga"
             minValue = 1
         }
 
-        val pagesPerChapter by long {
+        val pagesPerChapter by optionalLong {
             name = "páginasporcapítulo"
             description ="Cantidad de páginas aproximada por capítulo"
             minValue = 1
         }
 
-        val volumes by long {
+        val volumes by optionalLong {
             name = "tomos"
             description = "Cantidad de tomos del manga"
             minValue = 1
