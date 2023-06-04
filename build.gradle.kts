@@ -1,7 +1,7 @@
 import kotlin.io.path.div
 import kotlin.io.path.readLines
 
-version = "0.1.1a"
+version = "0.1.2a"
 
 plugins {
     kotlin("jvm") version "1.8.20"
@@ -12,15 +12,20 @@ plugins {
 
 repositories {
     mavenCentral()
+
+    maven {
+        name = "Sonatype Snapshots"
+        url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots")
+    }
 }
 
 dependencies {
-    implementation("dev.kord", "kord-core", "0.8.0-M17")
+    implementation("dev.kord", "kord-core", "0.9.0")
 
     implementation("app.cash.sqldelight", "sqlite-driver", "2.0.0-alpha05")
     implementation("app.cash.sqldelight", "primitive-adapters", "2.0.0-alpha05")
     implementation("org.slf4j", "slf4j-simple","2.0.7")
-    implementation("com.kotlindiscord.kord.extensions", "kord-extensions", "1.5.6")
+    implementation("com.kotlindiscord.kord.extensions", "kord-extensions", "1.5.7-SNAPSHOT")
 
     implementation("com.twelvemonkeys.imageio", "imageio-jpeg", "3.9.4")
     implementation("com.twelvemonkeys.imageio", "imageio-webp", "3.9.4")

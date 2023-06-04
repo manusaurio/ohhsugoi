@@ -140,7 +140,7 @@ interface MangaDatabase {
      * @param[flags] flags of data to be unset
      * @throws [DownloadException] if a [MangaChanges.imgURLSource]
      * was submitted and couldn't be downloaded */
-    suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags)
+    suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) : MangaWithTags
 
     /**
      * Deletes a manga entry.

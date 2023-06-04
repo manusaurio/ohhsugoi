@@ -199,7 +199,7 @@ class MangaDatabaseSQLite(
         return queries.selectMangaWithTags(listOf(insertionId), ::mangaSQLDmapper).executeAsOne()
     }
 
-    override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags) = withContext(dispatcher) {
+    override suspend fun updateManga(changes: MangaChanges, vararg flags: UpdateFlags): MangaWithTags = withContext(dispatcher) {
         val mangaId = changes.id
 
         val imgFilePath = if (changes.imgURLSource != null) {
@@ -207,7 +207,7 @@ class MangaDatabaseSQLite(
             storeMangaCover(changes.imgURLSource, mangaId)
         } else null
 
-        queries.transaction {
+        queries.transactionWithResult {
             flags.forEach { flag ->
                 when (flag) {
                     UpdateFlags.UNSET_IMG_URL -> queries.unsetImgURL(mangaId)
@@ -236,6 +236,8 @@ class MangaDatabaseSQLite(
             tagsToRemove?.takeIf(Collection<*>::isNotEmpty)?.let { tags ->
                 queries.removeTagAssociation(mangaId, tags)
             }
+
+            queries.selectMangaWithTags(listOf(mangaId), ::mangaSQLDmapper).executeAsOne()
         }
     }
 
