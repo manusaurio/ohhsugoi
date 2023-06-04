@@ -294,12 +294,12 @@ suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String
     }
 }
 
-suspend fun PublicSlashCommandContext<*, *>.requestConfirmation(
+suspend fun EphemeralSlashCommandContext<*, *>.requestConfirmation(
     description: String,
     timeout: Duration = 15.seconds,
     cancel: (suspend () -> Any?)? = null,
     confirm: suspend () -> Any?,
-) = respondEphemeral {
+) = respond {
     embed {
         title = "❗ Confirmación"
         this.description = description
@@ -313,7 +313,6 @@ suspend fun PublicSlashCommandContext<*, *>.requestConfirmation(
             cancel?.invoke()
             interactionResponse.delete()
         }
-
 
         ephemeralButton {
             label = "Confirmar"
