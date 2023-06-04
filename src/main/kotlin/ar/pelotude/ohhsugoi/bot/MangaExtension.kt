@@ -481,7 +481,12 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 requestConfirmation(
                         "¿Confirmas la edición sobre ${currentManga.title}?",
                 ) {
-                    val mangaChanges = with(arguments) {
+                    val requestedChanges = with(arguments) {
+                        val tagsToAdd = addTags?.toSet()
+                        val tagsToRemove = tagsToAdd?.let { toRemove ->
+                            toRemove - tagsToAdd
+                        }?.takeIf(Set<*>::isNotEmpty)
+
                         MangaChanges(
                             id=id,
                             title=title,
@@ -493,17 +498,17 @@ class MangaExtension: Extension(), KordExKoinComponent {
                             chapters=chapters,
                             pagesPerChapter=pagesPerChapter,
                             demographic=demographic,
-                            tagsToAdd=addTags?.toSet(),
-                            tagsToRemove=removeTags?.toSet(),
+                            tagsToAdd=tagsToAdd,
+                            tagsToRemove=tagsToRemove,
                             read=null,
                         )
                     }
 
                     try {
-                        db.updateManga(mangaChanges, *flags.toTypedArray())
-                        kordLogger.info { "${user.id} edited entry #${mangaChanges.id} (${currentManga.title})" }
+                        val updatedManga = db.updateManga(requestedChanges, *flags.toTypedArray())
+                        kordLogger.info { "${user.id} edited entry #${requestedChanges.id} (${currentManga.title})" }
 
-                        respondWithChanges(currentManga)
+                        respondWithChanges(currentManga, updatedManga, requestedChanges)
                     } catch (e: UnsupportedDownloadException) {
                         respondWithError(
                             description="Ese tipo de imagen no es válido." +

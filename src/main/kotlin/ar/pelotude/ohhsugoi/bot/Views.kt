@@ -1,5 +1,7 @@
 package ar.pelotude.ohhsugoi.bot
 
+import ar.pelotude.ohhsugoi.db.Manga
+import ar.pelotude.ohhsugoi.db.MangaChanges
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import ar.pelotude.ohhsugoi.util.makeTitle
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
@@ -12,6 +14,7 @@ import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondEphemeral
 import com.kotlindiscord.kord.extensions.types.respondPublic
 import dev.kord.common.Color
+import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
@@ -101,31 +104,126 @@ fun EmbedBuilder.mangaView(manga: MangaWithTags): EmbedBuilder {
     return this
 }
 
-suspend fun PublicSlashCommandContext<MangaExtension.EditArguments, *>.respondWithChanges(
-    previousManga: MangaWithTags
+suspend fun EphemeralSlashCommandContext<MangaExtension.EditArguments, *>.respondWithChanges(
+        previousManga: Manga,
+        updatedManga: MangaWithTags,
+        requestedChanges: MangaChanges,
 ) {
-    respond {
-        embed {
-            title = "Editado [#${previousManga.id}] ${previousManga.title}"
-            color = colors.success
+    channel.createEmbed {
+        title = "Editado [#${previousManga.id}] ${previousManga.title}"
+        color = colors.success
 
-            description = "__Campos modificados__:\n\n" +
-                    listOf<Pair<String, *>>(
-                        ("Título" to arguments.title),
-                        ("Descripción" to arguments.description),
-                        ("Imagen" to arguments.image),
-                        ("Link" to arguments.link),
-                        ("Tomos" to arguments.volumes),
-                        ("Páginas por tomo" to arguments.pagesPerVolume),
-                        ("Capítulos" to arguments.chapters),
-                        ("Páginas por capítulo" to arguments.pagesPerChapter),
-                        ("Demografía" to arguments.demographic),
-                        ("Tags (nuevos)" to arguments.addTags),
-                        ("Tags (removidos)" to arguments.removeTags),
-                        ("Imagen removida" to arguments.unsetImage),
-                    )
-                        .filter { it.second != null }
-                        .joinToString("\n") { it.first }
+        user.asUserOrNull()?.let { u ->
+            author {
+                name = "${u.username} (${u.id.value})"
+                icon = u.avatar?.cdnUrl?.toUrl()
+            }
+        }
+
+        arguments.title?.let {
+            field {
+                name = "Título"
+                value = it
+                inline = false
+            }
+        }
+
+        arguments.description?.let {
+            field {
+                name = "Descripción"
+                value = it
+                inline = false
+            }
+        }
+
+        arguments.link?.let {
+            field {
+                name = "Link"
+                value = it
+                inline = false
+            }
+        }
+
+        arguments.volumes?.let {
+            field {
+                name = "Tomos"
+                value = "$it"
+                inline = true
+            }
+        }
+
+        arguments.pagesPerVolume?.let {
+            field {
+                name = "Páginas por tomo"
+                value = "$it"
+                inline = true
+            }
+        }
+
+        arguments.chapters?.let {
+            field {
+                name = "Capítulos"
+                value = "$it"
+                inline = true
+            }
+        }
+
+        arguments.pagesPerChapter?.let {
+            field {
+                name = "Páginas por capítulo"
+                value = "$it"
+                inline = true
+            }
+        }
+
+        arguments.demographic?.let {
+            field {
+                name = "Demografía"
+                value = it
+                inline = true
+            }
+        }
+
+        requestedChanges.tagsToAdd?.let {
+            field {
+                name = "Tags para agregar"
+                value = it.joinToString(separator=", ", transform=String::makeTitle)
+                inline = false
+            }
+        }
+
+        requestedChanges.tagsToRemove?.let {
+            field {
+                name = "Tags para remover"
+                value = it.joinToString(separator=", ", transform=String::makeTitle)
+                inline = false
+            }
+        }
+
+        // `previousManga` might not represent the last status the user had knowledge of,
+        // so we can't rely on it to show the difference between states
+        if (!arguments.addTags.isNullOrEmpty() || !arguments.removeTags.isNullOrEmpty()) {
+            field {
+                name = "Tags resultantes"
+                value = updatedManga.tags.joinToString(separator=", ", transform=String::makeTitle)
+                inline = true
+            }
+        }
+
+        arguments.image?.let {
+            image = updatedManga.imgURLSource?.toString()
+        }
+
+        if (arguments.unsetImage == true && arguments.image == null) { // `Boolean?` not `Boolean`
+            field {
+                name = "Remover portada"
+                value = "Sí"
+                inline = true
+            }
+        }
+
+        if (fields.isEmpty() && image == null) {
+            description = "Ningún cambio."
         }
     }
 }
