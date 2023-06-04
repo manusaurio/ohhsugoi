@@ -168,6 +168,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                     }.sortedByDescending(ScheduledPostMetadataImpl<*>::execInstant)
 
                     if (posts.isEmpty()) {
+                        @OptIn(EphemeralOrPublicView::class)
                         respondWithInfo("No se encontraron mensajes programados.")
                         return@action
                     }
@@ -211,6 +212,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                     val dateInstant = arguments.date.toInstant()
                     val scheduledMsg = scheduler.schedule(modal!!.text.value!!, dateInstant, arguments.mention?.id?.value)
 
+                    @OptIn(EphemeralOrPublicView::class)
                     respondWithSuccess("""Mensaje de Discord [#${scheduledMsg.id}] programado exitosamente
                         |
                         |Momento de envío: <t:${dateInstant.epochSecond}:R> (<t:${dateInstant.epochSecond}:F>)
@@ -225,6 +227,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 action {
                     val post = scheduler.get(arguments.postId)
 
+                    @OptIn(EphemeralOrPublicView::class)
                     if (post == null) respondWithError("No existe la publicación `${arguments.postId}`")
                     else respond {
                         val status = when (post.status) {
@@ -261,6 +264,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 name = "cancelar"
                 description = "Cancela un mensaje programado de Discord"
 
+                @OptIn(EphemeralOrPublicView::class)
                 action {
                     if (scheduler.cancel(arguments.postId)) {
                         respondWithSuccess("Cancelado")
@@ -278,6 +282,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 action {modal ->
                     val submittedEdition = modal!!.text.value!!
 
+                    @OptIn(EphemeralOrPublicView::class)
                     scheduler.editPost(arguments.postId, submittedEdition).let { success ->
                         if (success) respondWithSuccess("Editado el texto a:\n\n${submittedEdition}", public=true)
                         else {
@@ -313,6 +318,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 action {
                     val newExecInstant = arguments.date.toInstant()
 
+                    @OptIn(EphemeralOrPublicView::class)
                     scheduler.editPost(arguments.postId, newExecInstant=newExecInstant).let { success ->
                         if (success) {
                             respondWithSuccess("Fecha de publicación del mensaje #${arguments.postId} cambiada a <t:${newExecInstant.epochSecond}:F>.")
@@ -328,6 +334,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 description = "Edita el rol a mencionar en un mensaje."
 
                 action {
+                    @OptIn(EphemeralOrPublicView::class)
                     scheduler.editPost(k=arguments.postId, newMentionRole=arguments.mention.id.value).let { success ->
                         if (success) {
                             respondWithSuccess("Rol a mencionar de #${arguments.postId} cambiado a ${arguments.mention.mention}.")
@@ -343,6 +350,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 description = "Remueve el rol a mencionar en un mensaje."
 
                 action {
+                    @OptIn(EphemeralOrPublicView::class)
                     scheduler.removeMention(arguments.postId).let { success ->
                         if (success) {
                             respondWithSuccess("Rol a mencionar de la publicación #${arguments.postId} removido.")
@@ -368,6 +376,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                     val userData = UserData(user.id.value, zoneId)
                     usersDatabase.setUser(userData)
 
+                    @OptIn(EphemeralOrPublicView::class)
                     respondWithSuccess("""Zona cambiada a `${arguments.zoneId}`.
                     |
                     |Tu horario actual debería ser `${ZonedDateTime.now(zoneId).format(hourFormatter)}`
@@ -385,13 +394,16 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                     if (zoneIdStr != null) {
                         val zoneId = ZoneId.of(zoneIdStr)
 
+                        @OptIn(EphemeralOrPublicView::class)
                         respondWithInfo(
                             """Tu zona es `$zoneIdStr`
                             |
                             |Tu horario actual debería ser `${ZonedDateTime.now(zoneId).format(hourFormatter)}`
                             |""".trimMargin()
                         )
-                    } else respondWithInfo("No tengo registrada tu zona horaria.")
+                    } else @OptIn(EphemeralOrPublicView::class) {
+                        respondWithInfo("No tengo registrada tu zona horaria.")
+                    }
                 }
             }
         }

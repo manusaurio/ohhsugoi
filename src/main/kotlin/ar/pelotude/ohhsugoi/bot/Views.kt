@@ -6,13 +6,10 @@ import ar.pelotude.ohhsugoi.db.MangaWithTags
 import ar.pelotude.ohhsugoi.util.makeTitle
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.EphemeralSlashCommandContext
-import com.kotlindiscord.kord.extensions.commands.application.slash.PublicSlashCommandContext
+import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommandContext
 import com.kotlindiscord.kord.extensions.components.components
 import com.kotlindiscord.kord.extensions.components.ephemeralButton
-import com.kotlindiscord.kord.extensions.types.edit
-import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.types.respondEphemeral
-import com.kotlindiscord.kord.extensions.types.respondPublic
+import com.kotlindiscord.kord.extensions.types.*
 import dev.kord.common.Color
 import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.entity.User
@@ -234,64 +231,38 @@ fun quickEmbed(title: String, description: String, color: Color) = EmbedBuilder(
     this.color = color
 }
 
-suspend fun EphemeralSlashCommandContext<*, *>.respondWithInfo(description: String, title: String = "**Info**", public: Boolean = false) {
-    val embed = quickEmbed(title, description, colors.info)
+@RequiresOptIn(
+        level = RequiresOptIn.Level.WARNING,
+        message = "This function checks if it's being called from a ephemeral or public interaction," +
+                " but it won't do anything nor show errors or warnings for anything else. " +
+                "Make sure the interaction you are using it from is one of the valid ones.",
+)
+@Retention(AnnotationRetention.BINARY)
+@Target(AnnotationTarget.FUNCTION)
+/** Opt-in for views in ephemeral or public contexts. */
+annotation class EphemeralOrPublicView
 
-    if (public) respondPublic {
-        embeds.add(embed)
-    } else respond {
-        embeds.add(embed)
+@EphemeralOrPublicView
+suspend inline fun SlashCommandContext<*, *, *>.respondEphemeralOrPublicEmbed(embed: EmbedBuilder, public: Boolean) {
+    when (this) {
+        is EphemeralInteractionContext -> if (public) respondPublic { embeds.add(embed) } else respond { embeds.add(embed) }
+        is PublicInteractionContext -> if (public) respond { embeds.add(embed) } else respondEphemeral { embeds.add(embed) }
     }
 }
 
-suspend fun EphemeralSlashCommandContext<*, *>.respondWithSuccess(description: String, title: String = "**Éxito**", public: Boolean = false) {
-    val embed = quickEmbed(title, description, colors.success)
-
-    if (public) respondPublic {
-        embeds.add(embed)
-    } else respond {
-        embeds.add(embed)
-    }
+@EphemeralOrPublicView
+suspend inline fun SlashCommandContext<*, *, *>.respondWithInfo(description: String, title: String = "**Info**", public: Boolean = false) {
+    respondEphemeralOrPublicEmbed(quickEmbed(title, description, colors.info), public=public)
 }
 
-suspend fun EphemeralSlashCommandContext<*, *>.respondWithError(description: String, title: String = "**Error**", public: Boolean = false) {
-    val embed = quickEmbed(title, description, colors.error)
-
-    if (public) respondPublic {
-        embeds.add(embed)
-    } else respond {
-        embeds.add(embed)
-    }
+@EphemeralOrPublicView
+suspend inline fun SlashCommandContext<*, *, *>.respondWithSuccess(description: String, title: String = "**Éxito**", public: Boolean = false) {
+    respondEphemeralOrPublicEmbed(quickEmbed(title, description, colors.success), public=public)
 }
 
-suspend fun PublicSlashCommandContext<*, *>.respondWithInfo(description: String, title: String = "**Info**", public: Boolean = true) {
-    val embed = quickEmbed(title, description, colors.info)
-
-    if (public) respond {
-        embeds.add(embed)
-    } else respondEphemeral {
-        embeds.add(embed)
-    }
-}
-
-suspend fun PublicSlashCommandContext<*, *>.respondWithSuccess(description: String, title: String = "**Éxito**", public: Boolean = true) {
-    val embed = quickEmbed(title, description, colors.success)
-
-    if (public) respond {
-        embeds.add(embed)
-    } else respondEphemeral {
-        embeds.add(embed)
-    }
-}
-
-suspend fun PublicSlashCommandContext<*, *>.respondWithError(description: String, title: String = "**Error**", public: Boolean = true) {
-    val embed = quickEmbed(title, description, colors.error)
-
-    if (public) respond {
-        embeds.add(embed)
-    } else respondEphemeral {
-        embeds.add(embed)
-    }
+@EphemeralOrPublicView
+suspend inline fun SlashCommandContext<*, *, *>.respondWithError(description: String, title: String = "**Error**", public: Boolean = false) {
+    respondEphemeralOrPublicEmbed(quickEmbed(title, description, colors.error), public=public)
 }
 
 suspend fun EphemeralSlashCommandContext<*, *>.requestConfirmation(

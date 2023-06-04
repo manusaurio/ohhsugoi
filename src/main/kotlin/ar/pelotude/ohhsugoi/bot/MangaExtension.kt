@@ -13,10 +13,12 @@ import com.kotlindiscord.kord.extensions.commands.application.slash.converters.i
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.converters.impl.*
 import com.kotlindiscord.kord.extensions.extensions.Extension
+import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondEphemeral
+import com.kotlindiscord.kord.extensions.types.respondPublic
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import com.kotlindiscord.kord.extensions.utils.suggestStringCollection
 import dev.kord.core.behavior.interaction.suggestString
@@ -336,6 +338,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                 val mangaList = db.searchManga(title, tag, demographic, 15)
 
+                @OptIn(EphemeralOrPublicView::class)
                 when {
                     mangaList.isEmpty() -> respondWithInfo(
                             title="Sin resultados",
@@ -378,6 +381,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
             action {
                 val mangaList = db.getMangas(*arguments.ids.toLongArray()).toList()
 
+                @OptIn(EphemeralOrPublicView::class)
                 when {
                     mangaList.isEmpty() -> respondWithInfo(
                             title="Sin resultados",
@@ -401,7 +405,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
             }
         }
 
-        publicSlashCommand(::AddMangaArgs) {
+        ephemeralSlashCommand(::AddMangaArgs) {
             name = "agregar"
             description = "Agrega un manga con los datos proporcionados"
             guild(config.guild)
@@ -430,7 +434,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                     kordLogger.info { "${user.id} added entry #${insertedManga.id} (${insertedManga.title})" }
 
-                    respond {
+                    respondPublic {
                         content = "Agregado exitosamente."
 
                         embed {
@@ -438,17 +442,20 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         }
                     }
                 } catch (e: UnsupportedDownloadException) {
+                    @OptIn(EphemeralOrPublicView::class)
                     respondWithError(
-                        description="Ese tipo de imagen no es válido." +
-                            " Prueba con una imagen más pequeña y en JPG o PNG."
+                            description="Ese tipo de imagen no es válido." +
+                            " Prueba con una imagen más pequeña y en JPG o PNG.",
+                            public=false,
                     )
                 } catch (e: IOException) {
-                    respondWithError(description="Error al intentar descargar la imagen.")
+                    @OptIn(EphemeralOrPublicView::class)
+                    respondWithError(description="Error al intentar descargar la imagen.", public=false)
                 }
             }
         }
 
-        publicSlashCommand(::EditArguments) {
+        ephemeralSlashCommand(::EditArguments) {
             name = "editar"
             description = "Modifica o elimina los campos de un manga"
             guild(config.guild)
@@ -465,6 +472,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val somethingChanged = arguments.args.any { it.converter.parsed != null && it.displayName != "id" }
 
                 if (!somethingChanged) {
+                    @OptIn(EphemeralOrPublicView::class)
                     respondWithError("No has especificado ningún cambio.")
 
                     return@action
@@ -473,6 +481,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val currentManga = db.getManga(arguments.id)
 
                 currentManga ?: run {
+                    @OptIn(EphemeralOrPublicView::class)
                     respondWithError("La id ${arguments.id} no pudo ser encontrada")
 
                     return@action
@@ -510,18 +519,21 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                         respondWithChanges(currentManga, updatedManga, requestedChanges)
                     } catch (e: UnsupportedDownloadException) {
+                        @OptIn(EphemeralOrPublicView::class)
                         respondWithError(
-                            description="Ese tipo de imagen no es válido." +
-                                    " Prueba con una imagen más pequeña y en JPG o PNG."
+                                description="Ese tipo de imagen no es válido." +
+                                        " Prueba con una imagen más pequeña y en JPG o PNG.",
+                                public=false,
                         )
                     } catch (e: IOException) {
-                        respondWithError(description="Error al intentar descargar la imagen.")
+                        @OptIn(EphemeralOrPublicView::class)
+                        respondWithError(description="Error al intentar descargar la imagen.", public=false)
                     }
                 }
             }
         }
 
-        publicSlashCommand(::DeletionArguments) {
+        ephemeralSlashCommand(::DeletionArguments) {
             name = "borrar"
             description = "Elimina una entrada de la base de datos"
             guild(config.guild)
@@ -534,6 +546,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val manga = db.getManga(arguments.id)
 
                 manga ?: run {
+                    @OptIn(EphemeralOrPublicView::class)
                     respondWithError("La id ${arguments.id} no pudo ser encontrada")
 
                     return@action
@@ -544,8 +557,9 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 ) {
                     val successfullyDeleted = db.deleteManga(manga.id)
 
+                    @OptIn(EphemeralOrPublicView::class)
                     if (successfullyDeleted) respondWithSuccess("Eliminado **${manga.title}**")
-                    else respondWithError("No se pudo eliminar ${manga.title}")
+                    else this@action.respondWithError("No se pudo eliminar ${manga.title}")
                 }
             }
         }
