@@ -14,6 +14,7 @@ import com.kotlindiscord.kord.extensions.commands.converters.impl.string
 import com.kotlindiscord.kord.extensions.components.forms.ModalForm
 import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
+import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
@@ -204,7 +205,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            ephemeralSubCommand(::ScheduleArguments, ::DiscordMessageModal) {
+            publicSlashCommand(::ScheduleArguments, ::DiscordMessageModal) {
                 name = "crear"
                 description = "Programa un mensaje para mandar a Discord a cierta hora."
 
@@ -220,7 +221,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            ephemeralSubCommand(::ScheduledPostArguments) {
+            publicSlashCommand(::ScheduledPostArguments) {
                 name = "ver"
                 description = "Muestra detalles de un mensaje programado de Discord"
 
@@ -260,7 +261,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            ephemeralSubCommand(::ScheduledPostArguments) {
+            publicSlashCommand(::ScheduledPostArguments) {
                 name = "cancelar"
                 description = "Cancela un mensaje programado de Discord"
 
@@ -275,7 +276,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            ephemeralSubCommand(::ScheduledPostArguments, ::DiscordMessageModal) {
+            publicSlashCommand(::ScheduledPostArguments, ::DiscordMessageModal) {
                 name = "editartexto"
                 description = "Edita el texto de un mensaje programado de Discord"
 
@@ -311,7 +312,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            ephemeralSubCommand(::EditDateArguments) {
+            publicSlashCommand(::EditDateArguments) {
                 name = "editarfecha"
                 description = "Edita la fecha de un mensaje programado de Discord"
 
@@ -329,7 +330,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            ephemeralSubCommand(::EditMentionRoleArguments) {
+            publicSlashCommand(::EditMentionRoleArguments) {
                 name = "editarmención"
                 description = "Edita el rol a mencionar en un mensaje."
 
@@ -345,7 +346,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            ephemeralSubCommand(::ScheduledPostArguments) {
+            publicSlashCommand(::ScheduledPostArguments) {
                 name = "removermención"
                 description = "Remueve el rol a mencionar en un mensaje."
 

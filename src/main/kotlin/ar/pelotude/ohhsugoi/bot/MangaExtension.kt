@@ -18,9 +18,9 @@ import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondEphemeral
-import com.kotlindiscord.kord.extensions.types.respondPublic
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import com.kotlindiscord.kord.extensions.utils.suggestStringCollection
+import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.entity.Attachment
 import dev.kord.core.entity.interaction.AutoCompleteInteraction
@@ -405,7 +405,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
             }
         }
 
-        ephemeralSlashCommand(::AddMangaArgs) {
+        publicSlashCommand(::AddMangaArgs) {
             name = "agregar"
             description = "Agrega un manga con los datos proporcionados"
             guild(config.guild)
@@ -434,7 +434,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
                     kordLogger.info { "${user.id} added entry #${insertedManga.id} (${insertedManga.title})" }
 
-                    respondPublic {
+                    respond {
                         content = "Agregado exitosamente."
 
                         embed {
@@ -558,7 +558,18 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     val successfullyDeleted = db.deleteManga(manga.id)
 
                     @OptIn(EphemeralOrPublicView::class)
-                    if (successfullyDeleted) respondWithSuccess("Eliminado **${manga.title}**")
+                    if (successfullyDeleted)
+                        channel.createEmbed {
+                            user.asUserOrNull()?.let { u ->
+                                author {
+                                    name = "${u.username} (${u.id.value})"
+                                    icon = u.avatar?.cdnUrl?.toUrl()
+                                }
+                            }
+                            title = "Éxito"
+                            description = "Eliminado **[#${manga.id}] ${manga.title}**"
+                            color = colors.success
+                        }
                     else this@action.respondWithError("No se pudo eliminar ${manga.title}")
                 }
             }
