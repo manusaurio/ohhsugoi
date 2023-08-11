@@ -51,6 +51,16 @@ class MangaExtension: Extension(), KordExKoinComponent {
         }
     }
 
+    val titleAutoCompletionIdNamePairs: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
+        val typedIn = focusedOption.value
+
+        val results = db.searchMangaTitle(typedIn)
+
+        suggestString {
+            results.forEach { r -> choice("[#${r.first}] " + r.second, r.first.toString()) }
+        }
+    }
+
     val tagAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
         val typedIn = focusedOption.value
 
@@ -194,23 +204,39 @@ class MangaExtension: Extension(), KordExKoinComponent {
     }
 
     inner class GroupMangaEntriesArguments: Arguments() {
-        val ids by longList {
-            name = "ids"
-            description = "ids de los mangas a listar, separadas por coma. Por ejemplo: 3, 5, 1"
-            maxLength = 50
+        val paramDescription = "Manga a mostrar"
+        val paramMaxLength = 50
 
-            validate {
-                failIfNot("Sólo lista entre 1 y 20 ids separadas por coma") {
-                    value.size in 1..20
-                }
-            }
+        val mangaA by long {
+            name = "manga_a"
+            description = paramDescription
+            autoCompleteCallback = titleAutoCompletionIdNamePairs
+        }
+
+        val mangaB by optionalLong {
+            name = "manga_b"
+            description = paramDescription
+            autoCompleteCallback = titleAutoCompletionIdNamePairs
+        }
+
+        val mangaC by optionalLong {
+            name = "manga_c"
+            description = paramDescription
+            autoCompleteCallback = titleAutoCompletionIdNamePairs
+        }
+
+        val mangaD by optionalLong {
+            name = "manga_d"
+            description = paramDescription
+            autoCompleteCallback = titleAutoCompletionIdNamePairs
         }
     }
 
     inner class EditArguments: Arguments() {
         val id by long {
-            name = "id"
-            description = "El id del manga a editar."
+            name = "manga"
+            description = "El manga a editar."
+            autoCompleteCallback = titleAutoCompletionIdNamePairs
         }
 
         val title by optionalString {
@@ -313,8 +339,9 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
     inner class DeletionArguments: Arguments() {
         val id by long {
-            name = "id"
-            description = "id del manga a eliminar"
+            name = "manga"
+            description = "Manga a eliminar"
+            autoCompleteCallback = titleAutoCompletionIdNamePairs
         }
     }
 
@@ -374,12 +401,19 @@ class MangaExtension: Extension(), KordExKoinComponent {
         }
 
         publicSlashCommand(::GroupMangaEntriesArguments) {
-            name = "listar"
-            description = "Agrupa múltiples mangas en un paginador"
+            name = "ver"
+            description = "Muestra entradas de manga"
             guild(config.guild)
 
             action {
-                val mangaList = db.getMangas(*arguments.ids.toLongArray()).toList()
+                val ids = listOfNotNull(
+                        arguments.mangaA,
+                        arguments.mangaB,
+                        arguments.mangaC,
+                        arguments.mangaD,
+                ).toLongArray()
+
+                val mangaList = db.getMangas(*ids).toList()
 
                 @OptIn(EphemeralOrPublicView::class)
                 when {
