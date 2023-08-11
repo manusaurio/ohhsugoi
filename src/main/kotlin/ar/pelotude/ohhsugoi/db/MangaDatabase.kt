@@ -61,6 +61,12 @@ class MangaDatabaseSQLite(
 
     private val imgStoreSemaphore = Semaphore(3)
 
+    private fun String.escapeForFTS(): String {
+        return this.replace("\"", "\"\"")
+                .split(" ")
+                .joinToString(" ") { "\"$it\"" }
+    }
+
     override suspend fun getManga(id: Long): MangaWithTags? {
         return withContext(dispatcher) {
             queries.selectMangaWithTags(listOf(id), ::mangaSQLDmapper).executeAsOneOrNull()
@@ -82,7 +88,7 @@ class MangaDatabaseSQLite(
         return withContext(dispatcher) {
             val titleTagFilter = tagFilter?.lowercase()?.trim()
             return@withContext if (text != null) queries.searchMangaWithTagsFTS(
-                "title: $text",
+                "title: ${text.escapeForFTS()}",
                 demographicFilter,
                 titleTagFilter,
                 limit,
@@ -102,7 +108,7 @@ class MangaDatabaseSQLite(
                 if (text.length < 3) {
                     searchMangaTitlesStartingWith(text, limit, ::Pair).executeAsList()
                 } else {
-                    searchMangaTitlesFTS(text, limit, ::Pair).executeAsList()
+                    searchMangaTitlesFTS(text.escapeForFTS(), limit, ::Pair).executeAsList()
                 }
             }
         }
