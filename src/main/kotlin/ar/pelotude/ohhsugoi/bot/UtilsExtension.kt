@@ -421,7 +421,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
 
         publicSlashCommand(::WrittenItems) {
             name = "aleatorizar"
-            description = "Devuelve una entrada al azar de una lista proveída."
+            description = "Devuelve un elemento al azar de una lista proveída."
             guild(config.guild)
 
             action { modal ->
