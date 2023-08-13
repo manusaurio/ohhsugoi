@@ -14,6 +14,9 @@ import ar.pelotude.ohhsugoi.db.scheduler.SchedulerConfiguration
 import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import dev.kord.common.entity.Snowflake
+import dev.kord.core.behavior.interaction.suggestString
+import dev.kord.core.entity.interaction.AutoCompleteInteraction
+import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
 import io.ktor.http.*
 import org.koin.core.qualifier.named
 import org.koin.dsl.binds
@@ -23,6 +26,22 @@ import kotlin.io.path.createDirectories
 
 val botModule = module {
     single { MangaDatabaseSQLite() } binds arrayOf(MangaDatabase::class, ScheduledRegistry::class, UsersDatabase::class)
+
+    single<(suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit)?>(
+            named("mangaIdAutoCompletion")
+    ) {
+        val db: MangaDatabase = get()
+
+        return@single {
+            val typedIn = focusedOption.value
+
+            val results = db.searchMangaTitle(typedIn)
+
+            suggestString {
+                results.forEach { r -> choice("[#${r.first}] " + r.second, r.first.toString()) }
+            }
+        }
+    }
 
     single<Scheduler<Long>> { Scheduler(get()) }
 
