@@ -127,6 +127,16 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
         }
     }
 
+    inner class WrittenItems : ModalForm() {
+        override var title: String = "Aleatorizar."
+
+        val itemsText= paragraphText {
+            label = "Un item por línea."
+            maxLength = 900
+            minLength = 3
+        }
+    }
+
     private val EVERYTHING = "EVERYTHING"
 
     private val statusFilters = mapOf(
@@ -405,6 +415,43 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                     } else @OptIn(EphemeralOrPublicView::class) {
                         respondWithInfo("No tengo registrada tu zona horaria.")
                     }
+                }
+            }
+        }
+
+        publicSlashCommand(::WrittenItems) {
+            name = "aleatorizar"
+            description = "Devuelve una entrada al azar de una lista proveída."
+            guild(config.guild)
+
+            action { modal ->
+                val lines = modal?.itemsText?.value?.split('\n')?.filter(String::isNotBlank)
+
+                if (!lines.isNullOrEmpty()) {
+                    val embed = quickEmbed(
+                            "Aleatorización",
+                            "Estos elementos fueron mezclados y uno fue tomado al azar",
+                            colors.info,
+                    ).apply {
+                        field {
+                            name = "Elementos mezclados"
+                            inline = false
+                            value = lines.shuffled().joinToString("\n")
+                        }
+
+                        field {
+                            name = "Elemento al azar"
+                            inline = false
+                            value = lines.random()
+                        }
+                    }
+
+                    respond {
+                        embeds.add(embed)
+                    }
+
+                } else @OptIn(EphemeralOrPublicView::class) {
+                    respondWithError("Hubo un error con la lista proveída. ¿Había suficientes opciones?")
                 }
             }
         }
