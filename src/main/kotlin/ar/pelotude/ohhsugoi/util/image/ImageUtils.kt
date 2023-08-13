@@ -1,6 +1,7 @@
 package ar.pelotude.ohhsugoi.util.image
 
 import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.net.URL
 import javax.imageio.IIOImage
@@ -82,6 +83,64 @@ fun downloadImage(
 
             return resizedImgBuffer
         }
+    }
+}
+
+fun stitch(urls: Iterable<URL>, scalingAlgorithm: Int = BufferedImage.SCALE_SMOOTH): BufferedImage {
+    val imgs = urls.map(ImageIO::read)
+    val targetHeight = imgs.minOf(BufferedImage::getHeight)
+
+    val resizedImgs = imgs.map { img ->
+        val resizeAmount: Double = targetHeight.toDouble() /  img.height.toDouble()
+        val targetWidth = (img.width * resizeAmount).toInt()
+
+        val scaled = img.getScaledInstance(
+                targetWidth,
+                targetHeight,
+                scalingAlgorithm,
+        )
+
+        // I don't really need a `BufferedImage`, but let's try to avoid awt's `Image`...
+        BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB).apply {
+            graphics.drawImage(scaled, 0, 0, null)
+        }
+    }
+
+    val totalWidth = resizedImgs.sumOf(BufferedImage::getWidth)
+
+    val canvasBuffer = BufferedImage(totalWidth, targetHeight, BufferedImage.TYPE_INT_RGB)
+    val canvasG2d = canvasBuffer.createGraphics()
+
+    var xOffset = 0
+
+    for (img in resizedImgs) {
+        canvasG2d.drawImage(img, xOffset, 0, null)
+        xOffset += img.width
+    }
+
+    canvasG2d.dispose()
+
+    return canvasBuffer
+}
+
+fun BufferedImage.asJpgByteArray(): ByteArray {
+    val imgWriter = ImageIO.getImageWritersByFormatName("jpg").next()
+
+    val writerParams: ImageWriteParam = imgWriter.defaultWriteParam!!.apply {
+        compressionMode = ImageWriteParam.MODE_EXPLICIT
+        compressionQuality = 0.9f
+    }
+
+    val stream = ByteArrayOutputStream()
+    val output = ImageIO.createImageOutputStream(stream)
+
+    imgWriter.output = output
+
+    imgWriter.write(null, IIOImage(this, null, null), writerParams)
+    imgWriter.dispose()
+
+    return stream.use {
+        it.toByteArray()
     }
 }
 
