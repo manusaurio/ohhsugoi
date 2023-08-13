@@ -1,13 +1,18 @@
 package ar.pelotude.ohhsugoi.bot
 
+import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.UserData
 import ar.pelotude.ohhsugoi.db.UsersDatabase
 import ar.pelotude.ohhsugoi.db.scheduler.*
+import ar.pelotude.ohhsugoi.util.image.asJpgByteArray
+import ar.pelotude.ohhsugoi.util.image.stitch
 import com.kotlindiscord.kord.extensions.checks.hasRole
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.application.slash.converters.impl.stringChoice
 import com.kotlindiscord.kord.extensions.commands.application.slash.ephemeralSubCommand
 import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
+import com.kotlindiscord.kord.extensions.commands.converters.impl.long
+import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalLong
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalRole
 import com.kotlindiscord.kord.extensions.commands.converters.impl.role
 import com.kotlindiscord.kord.extensions.commands.converters.impl.string
@@ -22,10 +27,18 @@ import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.interaction.suggestString
 import dev.kord.core.entity.Guild
 import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.entity.interaction.AutoCompleteInteraction
+import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
 import dev.kord.core.exception.EntityNotFoundException
 import dev.kord.rest.builder.message.create.embed
 import dev.kord.rest.request.RestRequestException
+import io.ktor.client.request.forms.*
+import io.ktor.utils.io.*
+import io.ktor.utils.io.jvm.javaio.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
 import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -36,9 +49,16 @@ import java.time.format.DateTimeFormatter
 class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEventHandler<T> {
     override val name = "utils"
 
+    private val db: MangaDatabase by inject()
+
     private val scheduler: Scheduler<T> = get<Scheduler<T>>().apply { subscribe(this@UtilsExtension) }
     private val usersDatabase: UsersDatabase by inject()
     private val config: UtilsExtensionConfiguration by inject()
+    private val titleAutoCompletionIdNamePairs:
+            (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit)?
+            by inject(named("mangaIdAutoCompletion"))
+
+    private val busyMutex = Mutex()
 
     private lateinit var loggerChannel: TextChannel
 
@@ -52,6 +72,36 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
             else -> "<@&$this>"
         }
     }
+
+    inner class StitchCoversArguments : Arguments() {
+            val primero by long {
+                name = "primera"
+                description = "Primera portada"
+
+                autoCompleteCallback = titleAutoCompletionIdNamePairs
+            }
+
+            val segundo by long {
+                name = "segunda"
+                description = "Segunda portada"
+
+                autoCompleteCallback = titleAutoCompletionIdNamePairs
+            }
+
+            val tercero by optionalLong {
+                name = "tercera"
+                description = "Tercera portada"
+
+                autoCompleteCallback = titleAutoCompletionIdNamePairs
+            }
+
+            val cuarto by optionalLong {
+                name = "cuarta"
+                description = "Cuarta portada"
+
+                autoCompleteCallback = titleAutoCompletionIdNamePairs
+            }
+        }
 
     inner class ScheduleArguments : Arguments() {
         val date by date {
@@ -166,7 +216,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
             guild(config.guild)
 
             check {
-                hasRole(config.schedulerRole)
+                hasRole(config.allowedRole)
             }
 
             publicSubCommand(::SearchScheduledMessagesArguments) {
@@ -452,6 +502,42 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
 
                 } else @OptIn(EphemeralOrPublicView::class) {
                     respondWithError("Hubo un error con la lista proveída. ¿Había suficientes opciones?")
+                }
+            }
+        }
+
+        publicSlashCommand(::StitchCoversArguments) {
+            name = "combinar"
+            description = "Combina hasta 4 portadas en una imagen horizontal."
+            guild(config.guild)
+
+            check {
+                hasRole(config.allowedRole)
+            }
+
+            action {
+                respond {
+                    if (busyMutex.tryLock()) try {
+                        val ids = with (arguments) { setOfNotNull(primero, segundo, tercero, cuarto) }
+                        val mangas = db.getMangas(*ids.toLongArray()).mapNotNull { it.imgURLSource }
+
+                        if (mangas.size < 2) {
+                            content = "Lo siento, no he encontrado suficientes portadas para unir en una sola imagen."
+                        } else {
+                            val bytes = withContext(Dispatchers.IO) {
+                                stitch(mangas).asJpgByteArray()
+                            }
+
+                            addFile(
+                                    "imagen.jpg",
+                                    ChannelProvider(bytes.size.toLong()) { ByteReadChannel(bytes) },
+                            )
+                        }
+                    } finally {
+                        busyMutex.unlock()
+                    } else {
+                        content = "Lo siento, estoy ocupada procesando algo más."
+                    }
                 }
             }
         }
