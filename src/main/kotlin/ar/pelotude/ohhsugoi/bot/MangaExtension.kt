@@ -29,6 +29,7 @@ import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
 import dev.kord.rest.builder.message.create.embed
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.io.IOException
 import java.net.URL
 
@@ -51,15 +52,9 @@ class MangaExtension: Extension(), KordExKoinComponent {
         }
     }
 
-    val titleAutoCompletionIdNamePairs: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
-        val typedIn = focusedOption.value
-
-        val results = db.searchMangaTitle(typedIn)
-
-        suggestString {
-            results.forEach { r -> choice("[#${r.first}] " + r.second, r.first.toString()) }
-        }
-    }
+    val titleAutoCompletionIdNamePairs:
+            (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit)?
+            by inject(named("mangaIdAutoCompletion"))
 
     val tagAutoCompletion: (suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit) = {
         val typedIn = focusedOption.value
