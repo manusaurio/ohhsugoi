@@ -200,7 +200,6 @@ class MangaExtension: Extension(), KordExKoinComponent {
 
     inner class GroupMangaEntriesArguments: Arguments() {
         val paramDescription = "Manga a mostrar"
-        val paramMaxLength = 50
 
         val mangaA by long {
             name = "manga_a"

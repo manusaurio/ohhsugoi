@@ -265,7 +265,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            publicSlashCommand(::ScheduleArguments, ::DiscordMessageModal) {
+            publicSubCommand(::ScheduleArguments, ::DiscordMessageModal) {
                 name = "crear"
                 description = "Programa un mensaje para mandar a Discord a cierta hora."
 
@@ -281,7 +281,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            publicSlashCommand(::ScheduledPostArguments) {
+            publicSubCommand(::ScheduledPostArguments) {
                 name = "ver"
                 description = "Muestra detalles de un mensaje programado de Discord"
 
@@ -321,7 +321,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            publicSlashCommand(::ScheduledPostArguments) {
+            publicSubCommand(::ScheduledPostArguments) {
                 name = "cancelar"
                 description = "Cancela un mensaje programado de Discord"
 
@@ -336,7 +336,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            publicSlashCommand(::ScheduledPostArguments, ::DiscordMessageModal) {
+            publicSubCommand(::ScheduledPostArguments, ::DiscordMessageModal) {
                 name = "editartexto"
                 description = "Edita el texto de un mensaje programado de Discord"
 
@@ -372,7 +372,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            publicSlashCommand(::EditDateArguments) {
+            publicSubCommand(::EditDateArguments) {
                 name = "editarfecha"
                 description = "Edita la fecha de un mensaje programado de Discord"
 
@@ -390,7 +390,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            publicSlashCommand(::EditMentionRoleArguments) {
+            publicSubCommand(::EditMentionRoleArguments) {
                 name = "editarmención"
                 description = "Edita el rol a mencionar en un mensaje."
 
@@ -406,7 +406,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 }
             }
 
-            publicSlashCommand(::ScheduledPostArguments) {
+            publicSubCommand(::ScheduledPostArguments) {
                 name = "removermención"
                 description = "Remueve el rol a mencionar en un mensaje."
 
