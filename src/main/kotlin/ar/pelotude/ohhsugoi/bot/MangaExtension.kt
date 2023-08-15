@@ -181,8 +181,15 @@ class MangaExtension: Extension(), KordExKoinComponent {
             autoCompleteCallback = titleAutoCompletion
         }
 
-        val tag by optionalString {
-            name = "tag"
+        val tagA by optionalString {
+            name = "tag_a"
+            description = "Tag por el cual filtrar"
+
+            autoCompleteCallback = tagAutoCompletion
+        }
+
+        val tagB by optionalString {
+            name = "tag_b"
             description = "Tag por el cual filtrar"
 
             autoCompleteCallback = tagAutoCompletion
@@ -346,18 +353,20 @@ class MangaExtension: Extension(), KordExKoinComponent {
             guild(config.guild)
 
             action {
-                val (title, tag, demographic) = with (arguments) { Triple(title, tag, demographic) }
+                val criteria = with (arguments) { listOf(title, tagA, tagB, demographic) }
+                val (title, tagA, tagB, demographic) = criteria
 
-                if (listOf(title, tag, demographic).all { it == null }) {
+                if (criteria.all { it == null }) {
                     respondEphemeral { content = "Debes especificar al menos un criterio." }
                     return@action
                 }
 
                 val filterDescription = (title?.let { "__Título__: $title\n" } ?: "") +
-                        (tag?.let { "__Tag__: $tag\n" } ?: "") +
+                        (tagA?.let { "__Tag A__: $tagA\n" } ?: "") +
+                        (tagB?.let { "__Tag B__: $tagA\n" } ?: "") +
                         (demographic?.let { "__Demografía__: $demographic\n" } ?: "")
 
-                val mangaList = db.searchManga(title, tag, demographic, 15)
+                val mangaList = db.searchManga(title, tagA, tagB, demographic, 15)
 
                 @OptIn(EphemeralOrPublicView::class)
                 when {

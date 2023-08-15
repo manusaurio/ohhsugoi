@@ -168,7 +168,8 @@ WHERE (mangafts MATCH :terms)
     AND (manga.deleted = 0)
     AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
 GROUP BY manga.id
-HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
+HAVING (MAX(tag.title = :tag_filter_a) OR :tag_filter_a IS NULL)
+  AND (MAX(tag.title = :tag_filter_b) OR :tag_filter_b IS NULL)
 ORDER BY "rank"
 LIMIT :limit;
 
@@ -179,7 +180,8 @@ LEFT JOIN tag ON tag.id = ass.tag_id
 WHERE manga.deleted = 0
   AND (manga.demographics = :demographic_filter OR :demographic_filter IS NULL)
 GROUP BY manga.id
-HAVING MAX(tag.title = :tag_filter) OR :tag_filter IS NULL
+HAVING (MAX(tag.title = :tag_filter_a) OR :tag_filter_a IS NULL)
+  AND (MAX(tag.title = :tag_filter_b) OR :tag_filter_b IS NULL)
 LIMIT :limit;
 
 insertAnnouncement:

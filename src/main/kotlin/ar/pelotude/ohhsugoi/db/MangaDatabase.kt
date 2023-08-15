@@ -81,21 +81,25 @@ class MangaDatabaseSQLite(
 
     override suspend fun searchManga(
         text: String?,
-        tagFilter: String?,
+        tagFilterA: String?,
+        tagFilterB: String?,
         demographicFilter: String?,
         limit: Long
     ): Collection<MangaWithTags> {
         return withContext(dispatcher) {
-            val titleTagFilter = tagFilter?.lowercase()?.trim()
+            val titleTagFilterA = tagFilterA?.lowercase()?.trim()
+            val titleTagFilterB = tagFilterB?.lowercase()?.trim()
+
             return@withContext if (text != null) queries.searchMangaWithTagsFTS(
-                "title: ${text.escapeForFTS()}",
-                demographicFilter,
-                titleTagFilter,
-                limit,
-                ::mangaSQLDmapper
+                    "title: ${text.escapeForFTS()}",
+                    demographicFilter,
+                    titleTagFilterA,
+                    titleTagFilterB,
+                    limit,
+                    ::mangaSQLDmapper
             ).executeAsList()
             else queries.searchMangaWithTags(
-                demographicFilter, titleTagFilter, limit, ::mangaSQLDmapper
+                    demographicFilter, titleTagFilterA, titleTagFilterB, limit, ::mangaSQLDmapper
             ).executeAsList()
         }
     }

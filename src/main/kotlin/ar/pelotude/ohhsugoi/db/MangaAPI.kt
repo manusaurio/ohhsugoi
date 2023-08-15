@@ -95,7 +95,8 @@ interface MangaDatabase {
 
     suspend fun searchManga(
         text: String? = null,
-        tagFilter: String? = null,
+        tagFilterA: String? = null,
+        tagFilterB: String? = null,
         demographicFilter: String? = null,
         limit: Long = 1
     ): Collection<MangaWithTags>
