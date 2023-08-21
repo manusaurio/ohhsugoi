@@ -5,11 +5,15 @@ import java.util.*
 
 /** This isn't ideal but I'm not gonna add another dependency or write something fancy
  * for something meant to be used among trustworthy people */
-fun String.isValidURL() = try {
+fun String.isValidURL(): Boolean = try {
     URL(this).toURI()
     true
-} catch(e: java.net.MalformedURLException) {
-    false
+} catch(e: Exception) {
+    when (e) {
+        is java.net.MalformedURLException,
+        is java.net.URISyntaxException -> false
+        else -> throw e
+    }
 }
 
 fun randomString(length: Int): String {
