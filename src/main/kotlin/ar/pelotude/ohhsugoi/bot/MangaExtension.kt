@@ -529,9 +529,10 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 ) {
                     val requestedChanges = with(arguments) {
                         val tagsToAdd = addTags?.toSet()
-                        val tagsToRemove = tagsToAdd?.let { toRemove ->
-                            toRemove - tagsToAdd
-                        }?.takeIf(Set<*>::isNotEmpty)
+
+                        val tagsToRemove = removeTags?.toSet()
+                                ?.subtract(tagsToAdd ?: emptySet())
+                                ?.takeIf(Set<*>::isNotEmpty)
 
                         MangaChanges(
                             id=id,
