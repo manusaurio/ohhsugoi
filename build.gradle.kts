@@ -1,7 +1,7 @@
 import kotlin.io.path.div
 import kotlin.io.path.readLines
 
-version = "0.1.7a"
+version = "0.1.8a"
 
 plugins {
     kotlin("jvm") version "1.8.20"
