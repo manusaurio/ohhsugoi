@@ -380,7 +380,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                         embeds.add(EmbedBuilder().mangaView(mangaList.first()))
                     }
 
-                    mangaList.size < 5 -> respondWithSuccess(
+                    mangaList.size <= 5 -> respondWithSuccess(
                             title="Encontrados ${mangaList.size} resultados\n\n",
                             description=filterDescription +
                                     mangaList.joinToString(prefix="\n", separator="\n") { "[#${it.id}] ${it.title}" },
