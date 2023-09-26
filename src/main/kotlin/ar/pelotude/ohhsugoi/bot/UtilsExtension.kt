@@ -74,28 +74,28 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
     }
 
     inner class StitchCoversArguments : Arguments() {
-            val primero by long {
+            val firstCover by long {
                 name = "primera"
                 description = "Primera portada"
 
                 autoCompleteCallback = titleAutoCompletionIdNamePairs
             }
 
-            val segundo by long {
+            val secondCover by long {
                 name = "segunda"
                 description = "Segunda portada"
 
                 autoCompleteCallback = titleAutoCompletionIdNamePairs
             }
 
-            val tercero by optionalLong {
+            val thirdCover by optionalLong {
                 name = "tercera"
                 description = "Tercera portada"
 
                 autoCompleteCallback = titleAutoCompletionIdNamePairs
             }
 
-            val cuarto by optionalLong {
+            val fourthCover by optionalLong {
                 name = "cuarta"
                 description = "Cuarta portada"
 
@@ -518,8 +518,16 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
             action {
                 respond {
                     if (busyMutex.tryLock()) try {
-                        val ids = with (arguments) { setOfNotNull(primero, segundo, tercero, cuarto) }
-                        val mangas = db.getMangas(*ids.toLongArray()).mapNotNull { it.imgURLSource }
+                        val ids = with (arguments) { listOfNotNull(firstCover, secondCover, thirdCover, fourthCover).distinct() }
+
+                        // it's just 4 elements...
+                        val mangas = db.getMangas(*ids.toLongArray()).let { mangas ->
+                            ids.mapNotNull { id ->
+                                mangas.firstNotNullOfOrNull {
+                                    m -> m.takeIf { id == m.id }?.imgURLSource
+                                }
+                            }
+                        }
 
                         if (mangas.size < 2) {
                             content = "Lo siento, no he encontrado suficientes portadas para unir en una sola imagen."
