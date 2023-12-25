@@ -6,7 +6,6 @@ CREATE TABLE poll(
   description TEXT,
   image_filename TEXT,
   single_vote INTEGER NOT NULL DEFAULT 0,
-  finishing_date INTEGER, -- when should it finish (can be NULL)
   finished_date INTEGER -- when it actually finished (if it's NULL then it's an ongoing poll)
 );
 
