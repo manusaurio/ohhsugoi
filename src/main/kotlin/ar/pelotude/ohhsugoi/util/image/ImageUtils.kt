@@ -3,6 +3,7 @@ package ar.pelotude.ohhsugoi.util.image
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.net.URL
 import javax.imageio.IIOImage
 import javax.imageio.ImageIO
@@ -169,3 +170,5 @@ fun BufferedImage.saveAsJpg(destiny: File, quality: Float = 0.7f) {
         (imgWriter.output as FileImageOutputStream).close()
     }
 }
+
+fun InputStream.toBufferedImage(): BufferedImage = ImageIO.read(this)

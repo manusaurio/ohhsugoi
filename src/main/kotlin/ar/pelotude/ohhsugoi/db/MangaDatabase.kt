@@ -8,26 +8,37 @@ import ar.pelotude.ohhsugoi.*
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledPostMetadataImpl
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
 import ar.pelotude.ohhsugoi.db.scheduler.Status
+import ar.pelotude.ohhsugoi.util.calculateSHA256
+import ar.pelotude.ohhsugoi.util.image.asJpgByteArray
 import ar.pelotude.ohhsugoi.util.image.downloadImage
 import ar.pelotude.ohhsugoi.util.image.saveAsJpg
+import ar.pelotude.ohhsugoi.util.image.toBufferedImage
+import ar.pelotude.ohhsugoi.util.toByteArray
+import ar.pelotude.ohhsugoi.util.toUUID
 import ar.pelotude.ohhsugoi.util.uuidString
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
 import dev.kord.core.kordLogger
+import io.ktor.util.logging.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
+import org.sqlite.SQLiteErrorCode
+import org.sqlite.SQLiteException
 import java.io.IOException
 import java.net.URL
+import java.nio.ByteBuffer
+import java.nio.file.Files
 import java.time.Instant
 import java.time.ZoneId
+import java.util.*
 import kotlin.io.path.div
 
 class MangaDatabaseSQLite(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
-) : MangaDatabase, UsersDatabase, ScheduledRegistry<Long>, KordExKoinComponent {
+) : MangaDatabase, UsersDatabase, PollsDatabase, ScheduledRegistry<Long>, KordExKoinComponent {
     internal val dbConfig: DatabaseConfiguration by inject()
 
     private val driver: SqlDriver = JdbcSqliteDriver("jdbc:sqlite:${dbConfig.sqlitePath}")
@@ -76,6 +87,9 @@ class MangaDatabaseSQLite(
     override suspend fun getMangas(vararg ids: Long): Collection<MangaWithTags> {
         return withContext(dispatcher) {
             queries.selectMangaWithTags(ids.toList(), ::mangaSQLDmapper).executeAsList()
+                .associateBy(MangaWithTags::id).let { mangaMap ->
+                    ids.map { mangaMap[it] }.filterNotNull()
+            }
         }
     }
 
@@ -348,6 +362,161 @@ class MangaDatabaseSQLite(
             queries.getUser(snowflake.toString()) { id, zone ->
                 UserData(id.toULong(), ZoneId.of(zone))
             }.executeAsOneOrNull()
+        }
+    }
+
+    override suspend fun createPoll(poll: Poll): ExistingPoll {
+        return withContext(Dispatchers.IO) {
+            val writtenFile = imgStoreSemaphore.withPermit {
+                poll.imgByteArray?.inputStream()?.toBufferedImage()?.asJpgByteArray()?.let { bi ->
+                    val targetFileName = dbConfig.pollImagesDirectory / "${bi.calculateSHA256()}.jpg"
+
+                    try {
+                        Files.write(targetFileName, bi)
+                    } catch (e: IOException) {
+                        kordLogger.error(e) { "An error occurred trying to write $targetFileName" }
+                        null
+                    }
+                }
+            }
+
+            database.transactionWithResult {
+                val insertedPollID = queries.insertPoll(
+                    poll.authorID,
+                    poll.title,
+                    poll.description,
+                    poll.singleVote.sqliteBool(),
+                    writtenFile?.fileName?.toString(),
+                ).executeAsOne()
+
+                val existingPollOptions: List<ExistingPollOption> = poll.options.map { option ->
+                    val uuid = UUID.randomUUID()!!
+
+                    val uuidByteArray = ByteBuffer.wrap(ByteArray(16))!!.apply {
+                        putLong(uuid.mostSignificantBits)
+                        putLong((uuid.leastSignificantBits))
+                    }.array()
+
+                    queries.insertPollOption(uuidByteArray, insertedPollID, option.description)
+
+                    ExistingPollOption(uuid, option.description, 0)
+                }
+
+                queries.selectPoll(insertedPollID, null) {
+                        id: Long, insertionDate: Long, authorID: Long?, title: String,
+                        description: String?, imageURL: String?, singleVote: Long,
+                        finishedDate: Long?, ->
+
+                    pollSQLDMapper(
+                        id,
+                        insertionDate,
+                        authorID,
+                        title,
+                        description,
+                        imageURL,
+                        singleVote,
+                        finishedDate,
+                        existingPollOptions,
+                    )
+                }.executeAsOne()
+            }
+        }
+    }
+
+    override suspend fun getPoll(pollID: Long): ExistingPoll? {
+        return withContext(Dispatchers.IO) {
+            database.transactionWithResult {
+                val existingPollOptions = queries.selectPollOptionsByPollID(pollID) {
+                        id: ByteArray,
+                        description: String,
+                        votes: Long,
+                    ->
+
+                    val optionUUID: UUID = ByteBuffer.wrap(id)!!.run {
+                        UUID(getLong(), getLong())
+                    }
+
+                    return@selectPollOptionsByPollID ExistingPollOption(optionUUID, description, votes)
+                }.executeAsList()
+
+                val existingPoll = queries.selectPoll(pollID, null) {
+                    id: Long, insertionDate: Long, authorID: Long?, title: String,
+                    description: String?, imageURL: String?, singleVote: Long,
+                    finishedDate: Long?, ->
+
+                    pollSQLDMapper(
+                        id,
+                        insertionDate,
+                        authorID,
+                        title,
+                        description,
+                        imageURL,
+                        singleVote,
+                        finishedDate,
+                        existingPollOptions,
+                    )
+                }.executeAsOneOrNull()
+
+                return@transactionWithResult existingPoll
+            }
+        }
+    }
+
+    override suspend fun getPollByOptionID(pollOptionID: UUID): ExistingPoll? {
+        return withContext(Dispatchers.IO) {
+            database.transactionWithResult {
+                queries.selectPollByOptionID(
+                    pollOptionID.toByteArray(),
+                ).executeAsOneOrNull()?.let { rawPoll ->
+                    val existingPollOptions = queries.selectPollOptionsByPollID(rawPoll.id) {
+                            optionID: ByteArray,
+                            description: String,
+                            votes: Long,
+                        ->
+                        ExistingPollOption(
+                            optionID.toUUID(),
+                            description,
+                            votes,
+                        )
+                    }.executeAsList()
+
+                    return@transactionWithResult with (rawPoll) {
+                        pollSQLDMapper(
+                            id,
+                            insertion_date,
+                            author_id,
+                            title,
+                            description,
+                            image_filename,
+                            single_vote,
+                            finished_date,
+                            existingPollOptions,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    override suspend fun vote(pollOptionID: UUID, snowflakeUserID: ULong): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                queries.toggleVote(snowflakeUserID.toLong(), pollOptionID.toByteArray())
+                    .executeAsOneOrNull()?.boolean
+                    ?: throw PollUnsuccessfulVoteException("Vote request returned null. Does the poll exist?")
+            } catch (e: SQLiteException) {
+                throw when (e.resultCode) {
+                    SQLiteErrorCode.SQLITE_CONSTRAINT_TRIGGER ->
+                        PollUnsuccessfulVoteException("Vote request failed. Has the poll been marked as finished?", e)
+                    else -> e
+                }
+            }
+        }
+    }
+
+    override suspend fun finishPoll(pollID: Long) {
+        withContext(Dispatchers.IO) {
+            queries.finishPoll(pollID)
         }
     }
 }

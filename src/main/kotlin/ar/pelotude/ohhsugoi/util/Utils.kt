@@ -1,6 +1,8 @@
 package ar.pelotude.ohhsugoi.util
 
 import java.net.URL
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 import java.util.*
 
 /** This isn't ideal but I'm not gonna add another dependency or write something fancy
@@ -32,3 +34,22 @@ fun String.capitalize() = this.replaceFirstChar { if (it.isLowerCase()) it.title
 fun String.makeTitle() = this.lowercase().capitalize()
 
 inline fun <T> identity(): (T) -> T  = { it }
+
+fun UUID.toByteArray(): ByteArray = ByteBuffer.wrap(ByteArray(16)).apply {
+    putLong(this@toByteArray.mostSignificantBits)
+    putLong(this@toByteArray.leastSignificantBits)
+}.array()
+
+fun ByteArray.toUUIDOrNull(): UUID? = ByteBuffer.wrap(this)!!.runCatching {
+    UUID(getLong(), getLong())
+}.getOrNull()
+
+fun ByteArray.toUUID(): UUID = ByteBuffer.wrap(this)!!.run {
+    UUID(getLong(), getLong())
+}
+
+fun ByteArray.calculateSHA256(): String {
+    return MessageDigest.getInstance("SHA-256")
+        .digest(this)
+        .joinToString("") { "%02x".format(it) }
+}

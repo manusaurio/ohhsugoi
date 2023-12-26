@@ -7,6 +7,7 @@ import ar.pelotude.ohhsugoi.bot.UtilsExtensionConfiguration
 import ar.pelotude.ohhsugoi.db.DatabaseConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
+import ar.pelotude.ohhsugoi.db.PollsDatabase
 import ar.pelotude.ohhsugoi.db.UsersDatabase
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
 import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
@@ -25,7 +26,12 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 
 val botModule = module {
-    single { MangaDatabaseSQLite() } binds arrayOf(MangaDatabase::class, ScheduledRegistry::class, UsersDatabase::class)
+    single { MangaDatabaseSQLite() } binds arrayOf(
+        MangaDatabase::class,
+        ScheduledRegistry::class,
+        UsersDatabase::class,
+        PollsDatabase::class,
+    )
 
     single<(suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit)?>(
             named("mangaIdAutoCompletion")
@@ -77,10 +83,12 @@ val botModule = module {
         DatabaseConfiguration(
             mangaCoversWidth=225,
             mangaCoversHeight=340,
-            Url(System.getenv("WEBPAGE")),
-            Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
-            System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
-            Path.of(System.getenv("SQLITE_FILE_PATH")!!).apply { parent.createDirectories() }.toString(),
+            webpage=Url(System.getenv("WEBPAGE")),
+            mangaImageDirectory=Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
+            mangaCoversUrlPath=System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
+            sqlitePath=Path.of(System.getenv("SQLITE_FILE_PATH")!!).apply { parent.createDirectories() }.toString(),
+            pollImagesDirectory=Path.of(System.getenv("POLLS_IMAGE_DIRECTORY")),
+            pollImagesUrlPath=System.getenv("POLL_IMAGES_URL_SUBDIRECTORY"),
         )
     }
 
