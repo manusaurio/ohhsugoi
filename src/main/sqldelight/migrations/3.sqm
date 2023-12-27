@@ -34,7 +34,7 @@ WHEN (
   SELECT single_vote FROM poll WHERE poll.id = new.poll_id
 ) = 1
 BEGIN
-  DELETE FROM vote WHERE poll_id = new.poll_id AND poll_option_id != new.poll_option_id;
+  DELETE FROM vote WHERE poll_id = new.poll_id AND poll_option_id != new.poll_option_id AND new.user_id = user_id;
 END;
 
 CREATE TRIGGER prevent_vote_on_finished_poll_delete
