@@ -314,7 +314,8 @@ GROUP BY po.id
 ORDER BY po.rowid; -- hacky
 
 finishPoll:
-UPDATE poll SET finished_date = UNIXEPOCH() WHERE id = :pollID;
+UPDATE poll SET finished_date = UNIXEPOCH() WHERE id = :pollID AND finished_date IS NULL
+RETURNING 1;
 
 toggleVote {
   DELETE FROM vote

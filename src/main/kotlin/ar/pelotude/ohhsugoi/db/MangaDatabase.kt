@@ -516,7 +516,8 @@ class MangaDatabaseSQLite(
 
     override suspend fun finishPoll(pollID: Long) {
         withContext(Dispatchers.IO) {
-            queries.finishPoll(pollID)
+            queries.finishPoll(pollID).executeAsOneOrNull()
+                ?: throw PollUnsuccessfulOperationException("Could not mark poll $pollID as finished.")
         }
     }
 }
