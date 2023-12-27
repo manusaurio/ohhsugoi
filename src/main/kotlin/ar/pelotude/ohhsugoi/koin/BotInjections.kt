@@ -94,8 +94,9 @@ val botModule = module {
 
     single<UtilsExtensionConfiguration> {
         UtilsExtensionConfiguration(
-                Snowflake(System.getenv("DISCORD_HELPER_ROLE")!!),
-                get(),
+            allowedRole=Snowflake(System.getenv("DISCORD_HELPER_ROLE")!!),
+            announcementRole=Snowflake(System.getenv("KORD_WEEB_ROLE")!!),
+            generalConfig=get(),
         )
     }
 

@@ -1,5 +1,6 @@
 package ar.pelotude.ohhsugoi.bot
 
+import ar.pelotude.ohhsugoi.db.ExistingPoll
 import ar.pelotude.ohhsugoi.db.Manga
 import ar.pelotude.ohhsugoi.db.MangaChanges
 import ar.pelotude.ohhsugoi.db.MangaWithTags
@@ -310,5 +311,43 @@ suspend fun EphemeralSlashCommandContext<*, *>.requestConfirmation(
                 }
             }
         }
+    }
+}
+
+val optionIcons = listOf("1️⃣", "2️⃣", "3️⃣", "4️⃣")
+
+fun ExistingPoll.toEmbed(): EmbedBuilder {
+    val totalVotes = options.sumOf { it.votes }
+
+    return EmbedBuilder().apply {
+        title = this@toEmbed.title
+        description = this@toEmbed.description
+        image = imgSrc?.toString()
+
+        val finished = this@toEmbed.finishedInstant != null
+        val sortedOptions = if (finished) options.sortedByDescending { it.votes } else options
+
+        val texts = sortedOptions.mapIndexed { i, o ->
+            val optProportion = o.votes.toDouble() / totalVotes
+            val optPercentage = (optProportion * 100).takeIf { !it.isNaN() } ?: 0.0
+            val filled = (optProportion * 20).toInt()
+            val bar = "▓".repeat(filled) + " ".repeat(20 - filled)
+
+            if (finished) {
+                val medal = when (i) {
+                    0 -> "\uD83E\uDD47 "
+                    1 -> "\uD83E\uDD48 "
+                    2 -> "\uD83E\uDD49 "
+                    else -> ""
+                }
+                "$medal${o.description}\n`${bar}`｜ ${"%.2f".format(optPercentage)}% (${o.votes})"
+            } else {
+                val icon = optionIcons.getOrNull(i)?.plus(" ") ?: ""
+
+                "$icon${o.description}\n`${bar}`｜ ${"%.2f".format(optPercentage)}% (${o.votes})"
+            }
+        }.joinToString("\n")
+
+        description = (description ?: "") + "\n\n$texts"
     }
 }
