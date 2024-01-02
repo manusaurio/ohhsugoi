@@ -1,7 +1,7 @@
 import kotlin.io.path.div
 import kotlin.io.path.readLines
 
-version = "0.1.8a"
+version = "1.0.0a"
 
 plugins {
     kotlin("jvm") version "1.8.20"
@@ -31,7 +31,7 @@ dependencies {
 
     implementation("com.twelvemonkeys.imageio", "imageio-jpeg", "3.9.4")
     implementation("com.twelvemonkeys.imageio", "imageio-webp", "3.9.4")
-    
+
     val ktorVersion = "2.3.0"
 
     implementation("io.ktor", "ktor-client-core-jvm", ktorVersion)
