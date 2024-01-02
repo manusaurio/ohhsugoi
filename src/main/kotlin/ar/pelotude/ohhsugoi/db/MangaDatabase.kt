@@ -280,15 +280,6 @@ class MangaDatabaseSQLite(
         }
     }
 
-    /*
-    override suspend fun insertAnnouncement(content: String, scheduledDateTime: Instant, mentionId: ULong?): Long {
-        return withContext(dispatcher) {
-            queries.insertAnnouncement(content, scheduledDateTime.epochSecond, mentionId?.toString()).executeAsOne()
-        }
-    }
-
-     */
-
     override suspend fun insertAnnouncement(schedulablePost: RawPost, authorId: Long?): Long {
         return withContext(dispatcher) {
             queries.insertAnnouncement(
