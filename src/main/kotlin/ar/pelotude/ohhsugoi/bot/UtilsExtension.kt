@@ -8,7 +8,14 @@ import ar.pelotude.ohhsugoi.db.PollUnsuccessfulOperationException
 import ar.pelotude.ohhsugoi.db.PollsDatabase
 import ar.pelotude.ohhsugoi.db.UserData
 import ar.pelotude.ohhsugoi.db.UsersDatabase
-import ar.pelotude.ohhsugoi.db.scheduler.*
+import ar.pelotude.ohhsugoi.db.scheduler.Failure
+import ar.pelotude.ohhsugoi.db.scheduler.SchedulablePost
+import ar.pelotude.ohhsugoi.db.scheduler.ScheduleEvent
+import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
+import ar.pelotude.ohhsugoi.db.scheduler.SchedulerEventHandler
+import ar.pelotude.ohhsugoi.db.scheduler.Status
+import ar.pelotude.ohhsugoi.db.scheduler.platforms.DiscordWebhookMessage
+import ar.pelotude.ohhsugoi.db.scheduler.platforms.XPost
 import ar.pelotude.ohhsugoi.util.image.asJpgByteArray
 import ar.pelotude.ohhsugoi.util.image.stitch
 import com.kotlindiscord.kord.extensions.checks.hasRole
@@ -33,6 +40,7 @@ import com.kotlindiscord.kord.extensions.types.respond
 import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.Snowflake
+import dev.kord.common.exception.RequestException
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.edit
 import dev.kord.core.behavior.interaction.respondEphemeral
@@ -48,10 +56,8 @@ import dev.kord.core.exception.EntityNotFoundException
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.create.actionRow
 import dev.kord.rest.builder.message.create.embed
-import dev.kord.rest.request.RestRequestException
 import io.ktor.client.request.forms.*
 import io.ktor.utils.io.*
-import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -310,7 +316,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 action {
                     val posts = statusFilterMap(arguments.statusFilter).let { filter ->
                         scheduler.getPosts(filter)
-                    }.sortedByDescending(ScheduledPostMetadataImpl<*>::execInstant)
+                    }.sortedByDescending { it.execInstant }
 
                     if (posts.isEmpty()) {
                         @OptIn(EphemeralOrPublicView::class)
@@ -325,7 +331,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                             owner = user
 
                             page {
-                                title = "Encontrados ${posts.size} mensaje${if (posts.size > 1) 's' else ""} de Discord"
+                                title = "Encontrados ${posts.size} mensaje${if (posts.size > 1) 's' else ""}"
 
                                 postsChunk.forEach { post ->
                                     val status = when (post.status) {
@@ -355,7 +361,14 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
 
                 action { modal ->
                     val dateInstant = arguments.date.toInstant()
-                    val scheduledMsg = scheduler.schedule(modal!!.text.value!!, dateInstant, arguments.mention?.id?.value)
+
+                    val msg = DiscordWebhookMessage(
+                        content=arguments.mention?.id?.value?.toMentionOn(guild!!.asGuild()),
+                        embedText=modal!!.text.value!!,
+                        execInstant=dateInstant,
+                    )
+
+                    val scheduledMsg = scheduler.schedule(msg)
 
                     @OptIn(EphemeralOrPublicView::class)
                     respondWithSuccess("""Mensaje de Discord [#${scheduledMsg.id}] programado exitosamente
@@ -370,7 +383,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                 description = "Muestra detalles de un mensaje programado de Discord"
 
                 action {
-                    val post = scheduler.get(arguments.postId)
+                    val post = scheduler.get<SchedulablePost>(arguments.postId)
 
                     @OptIn(EphemeralOrPublicView::class)
                     if (post == null) respondWithError("No existe la publicación `${arguments.postId}`")
@@ -383,12 +396,25 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                         }
 
                         embed {
-                            title = "Mensaje de Discord [#${post.id}]"
+                            title = "Mensaje [#${post.id}]"
                             description = post.text
 
                             field {
-                                name = "Mención"
-                                value = post.mentionId.toMentionOn(guild!!.asGuild()) ?: "Nadie"
+                                name = "Tipo"
+                                value = when (post.post) {
+                                    is DiscordWebhookMessage -> "Discord"
+                                    is XPost -> "X"
+                                    else -> "Desconocido"
+                                }
+                            }
+
+                            if (post.post is DiscordWebhookMessage) {
+                                post.post.content?.let {
+                                    field {
+                                        name = "Contenido/Mención"
+                                        value = it
+                                    }
+                                }
                             }
 
                             field {
@@ -416,92 +442,6 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                     } else {
                         respondWithError("No se pudo cancelar ninguna publicación con esa id." +
                                     " Verifica que existe y que su estado esté pendiente de envío.")
-                    }
-                }
-            }
-
-            publicSubCommand(::ScheduledPostArguments, ::DiscordMessageModal) {
-                name = "editartexto"
-                description = "Edita el texto de un mensaje programado de Discord"
-
-                action {modal ->
-                    val submittedEdition = modal!!.text.value!!
-
-                    @OptIn(EphemeralOrPublicView::class)
-                    scheduler.editPost(arguments.postId, submittedEdition).let { success ->
-                        if (success) respondWithSuccess("Editado el texto a:\n\n${submittedEdition}", public=true)
-                        else {
-                            val userGotDm = try {
-                                user.getDmChannel().createMessage {
-                                    embed {
-                                        title = "Texto de edición fallida para #${arguments.postId}."
-                                        description = submittedEdition
-                                        color = colors.error
-                                    }
-                                }
-                                true
-                            } catch (e: RestRequestException) {
-                                false
-                            }
-
-                            val description = "No se pudo cambiar el texto del mensaje #${arguments.postId}" + if (!userGotDm) {
-                                ". Cópialo para evitar perderlo:\n\n${submittedEdition}"
-                            } else {
-                                ". Tu texto te fue envíado por mensaje directo."
-                            }
-
-                            respondWithError(description)
-                        }
-                    }
-                }
-            }
-
-            publicSubCommand(::EditDateArguments) {
-                name = "editarfecha"
-                description = "Edita la fecha de un mensaje programado de Discord"
-
-                action {
-                    val newExecInstant = arguments.date.toInstant()
-
-                    @OptIn(EphemeralOrPublicView::class)
-                    scheduler.editPost(arguments.postId, newExecInstant=newExecInstant).let { success ->
-                        if (success) {
-                            respondWithSuccess("Fecha de publicación del mensaje #${arguments.postId} cambiada a <t:${newExecInstant.epochSecond}:F>.")
-                        } else {
-                            respondWithError("No se pudo cambiar la fecha de publicación del mensaje #${arguments.postId}.")
-                        }
-                    }
-                }
-            }
-
-            publicSubCommand(::EditMentionRoleArguments) {
-                name = "editarmención"
-                description = "Edita el rol a mencionar en un mensaje."
-
-                action {
-                    @OptIn(EphemeralOrPublicView::class)
-                    scheduler.editPost(k=arguments.postId, newMentionRole=arguments.mention.id.value).let { success ->
-                        if (success) {
-                            respondWithSuccess("Rol a mencionar de #${arguments.postId} cambiado a ${arguments.mention.mention}.")
-                        } else {
-                            respondWithError("No se pudo cambiar el rol del mensaje #${arguments.postId}.")
-                        }
-                    }
-                }
-            }
-
-            publicSubCommand(::ScheduledPostArguments) {
-                name = "removermención"
-                description = "Remueve el rol a mencionar en un mensaje."
-
-                action {
-                    @OptIn(EphemeralOrPublicView::class)
-                    scheduler.removeMention(arguments.postId).let { success ->
-                        if (success) {
-                            respondWithSuccess("Rol a mencionar de la publicación #${arguments.postId} removido.")
-                        } else {
-                            respondWithError("No se pudo remover el rol del mensaje #${arguments.postId}.")
-                        }
                     }
                 }
             }
@@ -819,27 +759,44 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                         val finishedPoll = pollsDb.getPoll(pollID)
 
                         if (finishedPoll !== null && !quietly) {
-                            val groupedOptions = finishedPoll.options.groupBy { it.votes }.maxByOrNull { (k, _) -> k }!!.value
                             val totalVotes = finishedPoll.options.sumOf { it.votes }
+                            val groupedOptions = finishedPoll.options.groupBy { it.votes }
 
-                            val totalSharedVotes = groupedOptions.sumOf { it.votes }
-                            val optsProportions = totalSharedVotes.toDouble() / totalVotes
-                            val optPercentage = (optsProportions * 100).takeIf { !it.isNaN() } ?: 0.0
+                            val rankedOptions = groupedOptions.toSortedMap(compareByDescending { it })
+                                .entries.flatMapIndexed { rank, (votes, pollOptions) ->
+                                    val individualOptProportion = pollOptions.first().votes.toDouble() / totalVotes
+                                    val individualOptPercentage = (individualOptProportion * 100).takeIf { !it.isNaN() } ?: 0.0
 
-                            val resultsText = groupedOptions.joinToString(
-                                prefix=(if (groupedOptions.size > 1) "Ganadores" else "Ganador")
-                                        + " con $totalSharedVotes voto${if (totalSharedVotes > 1) "s" else ""} ($optPercentage%):\n",
+                                    pollOptions.map { pollOption ->
+                                        Triple(rank, pollOption, individualOptPercentage)
+                                    }
+                                }
+
+                            val resultsText = rankedOptions.joinToString(
                                 separator="\n",
-                            ) {
-                                it.description
+                                prefix="«${finishedPoll.title}»: votación finalizada\n\n"
+                            ) { (rank, option, percentage) ->
+                                val shortenedPercentage = "%.2f".format(percentage)
+                                "${if (rank == 0) "\uD83C\uDFC6 " else ""}${option.description} ($shortenedPercentage%, ${option.votes})"
+                            }
+
+                            try {
+                                scheduler.schedule(
+                                    DiscordWebhookMessage(
+                                        content=config.announcementRole.value.toMentionOn(kord.getGuildOrThrow(config.guild)),
+                                        embedText=resultsText,
+                                        execInstant=Instant.now(),
+                                    )
+                                )
+                            } catch (e: RequestException) {
+                                kordLogger.error(e) { "There was a problem trying to resolve a guild for a scheduled message" }
                             }
 
                             scheduler.schedule(
-                                execInstant=Instant.now(),
-                                mentionId=config.announcementRole.value,
-                                text="**«${finishedPoll.title}»: votación finalizada**"
-                                        + "\n\n"
-                                        + resultsText,
+                                XPost(
+                                    text=resultsText,
+                                    execInstant=Instant.now(),
+                                )
                             )
                         }
 
