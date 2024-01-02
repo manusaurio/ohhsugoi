@@ -48,7 +48,7 @@ CREATE TABLE scheduled_announcement(
   id INTEGER PRIMARY KEY NOT NULL,
   content TEXT NOT NULL,
   scheduled_date INTEGER NOT NULL,
-  mention_snowflake_id TEXT,
+  announcement_type TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING' -- PENDING, SENT, CANCELLED, FAILED
 );
 
@@ -111,7 +111,7 @@ BEGIN
 END;
 -- END voting rules
 
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;
 
 searchTagTitle:
 SELECT t.title FROM tag t WHERE title LIKE :name || '%' LIMIT :limit;
@@ -239,8 +239,8 @@ HAVING (MAX(tag.title = :tag_filter_a) OR :tag_filter_a IS NULL)
 LIMIT :limit;
 
 insertAnnouncement:
-INSERT INTO scheduled_announcement(content, scheduled_date, mention_snowflake_id)
-VALUES(:content, :scheduled_date, :mention_id) RETURNING id;
+INSERT INTO scheduled_announcement(content, scheduled_date, announcement_type)
+VALUES(:content, :scheduled_date, :announcement_type) RETURNING id;
 
 markAnnouncementAsSent:
 UPDATE scheduled_announcement SET status = 'SENT' WHERE id = :id RETURNING id;
@@ -252,23 +252,18 @@ markAnnouncementAsFailed:
 UPDATE scheduled_announcement SET status = 'FAILED' WHERE id = :id AND status = 'PENDING' RETURNING id;
 
 selectAnnouncement:
-SELECT id, content, scheduled_date, mention_snowflake_id, status FROM scheduled_announcement WHERE id = :announcement_id;
+SELECT id, content, scheduled_date, announcement_type, status FROM scheduled_announcement WHERE id = :announcement_id;
 
 selectAnnouncements:
-SELECT id, content, scheduled_date, mention_snowflake_id, status FROM scheduled_announcement WHERE status = :status OR :status IS NULL;
+SELECT id, content, scheduled_date, announcement_type, status FROM scheduled_announcement WHERE status = :status OR :status IS NULL;
 
 editAnnouncement:
 UPDATE scheduled_announcement
 SET
   content = CASE WHEN :content IS NULL THEN content ELSE :content END,
-  mention_snowflake_id = CASE WHEN :mentionId IS NULL THEN mention_snowflake_id ELSE :mentionId END,
   scheduled_date = CASE WHEN :date IS NULL THEN scheduled_date ELSE :date END
 WHERE id = :id AND status = 'PENDING'
 RETURNING id;
-
-unsetMentionFromAnnouncement:
-UPDATE scheduled_announcement
-SET mention_snowflake_id = NULL WHERE id = :id AND status = 'PENDING' RETURNING id;
 
 insertUser:
 INSERT INTO discord_user_timezone(snowflake_id, timezone) VALUES (:snowflake_id, :timezone)
