@@ -12,6 +12,8 @@ import ar.pelotude.ohhsugoi.db.UsersDatabase
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
 import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
 import ar.pelotude.ohhsugoi.db.scheduler.SchedulerConfiguration
+import ar.pelotude.ohhsugoi.db.scheduler.platforms.DiscordWebhookMessage
+import ar.pelotude.ohhsugoi.db.scheduler.platforms.XPost
 import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import dev.kord.common.entity.Snowflake
@@ -48,8 +50,6 @@ val botModule = module {
             }
         }
     }
-
-    single<Scheduler<Long>> { Scheduler(get()) }
 
     single<suspend (String, CommandContext) -> Long> {
         { value, context ->
@@ -102,8 +102,11 @@ val botModule = module {
 
     single<SchedulerConfiguration> {
         SchedulerConfiguration(
-                System.getenv("KORD_WEEB_SERVER")!!.toULong(),
-                System.getenv("DISCORD_WEBHOOK"),
+            webhook=System.getenv("DISCORD_WEBHOOK"),
+            xConsumerKey=System.getenv("X_CONSUMER_KEY"),
+            xConsumerKeySecret=System.getenv("X_CONSUMER_SECRET"),
+            xAccessToken=System.getenv("X_ACCESS_TOKEN"),
+            xAccessTokenSecret=System.getenv("X_ACCESS_TOKEN_SECRET"),
         )
     }
 
