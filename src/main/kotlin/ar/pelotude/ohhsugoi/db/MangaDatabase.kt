@@ -315,7 +315,6 @@ class MangaDatabaseSQLite(
                     Instant.ofEpochSecond(scheduled_date),
                     announcement_type,
                 )
-                // TODO serialize
             }.executeAsOneOrNull()
         }
     }
