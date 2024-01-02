@@ -51,6 +51,13 @@ val botModule = module {
         }
     }
 
+    single<Scheduler<Long>> {
+        Scheduler<Long>(get()).apply {
+            registerPostType<DiscordWebhookMessage>()
+            registerPostType<XPost>()
+        }
+    }
+
     single<suspend (String, CommandContext) -> Long> {
         { value, context ->
             try {

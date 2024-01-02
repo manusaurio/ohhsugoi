@@ -5,9 +5,10 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import ar.pelotude.db.Database
 import ar.pelotude.ohhsugoi.*
-import ar.pelotude.ohhsugoi.db.scheduler.ScheduledPostMetadataImpl
+import ar.pelotude.ohhsugoi.db.scheduler.RawPost
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
 import ar.pelotude.ohhsugoi.db.scheduler.Status
+import ar.pelotude.ohhsugoi.db.scheduler.StoredRawPost
 import ar.pelotude.ohhsugoi.util.calculateSHA256
 import ar.pelotude.ohhsugoi.util.image.asJpgByteArray
 import ar.pelotude.ohhsugoi.util.image.downloadImage
@@ -24,6 +25,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import org.koin.core.component.inject
 import org.sqlite.SQLiteErrorCode
 import org.sqlite.SQLiteException
@@ -277,59 +280,64 @@ class MangaDatabaseSQLite(
         }
     }
 
+    /*
     override suspend fun insertAnnouncement(content: String, scheduledDateTime: Instant, mentionId: ULong?): Long {
         return withContext(dispatcher) {
             queries.insertAnnouncement(content, scheduledDateTime.epochSecond, mentionId?.toString()).executeAsOne()
         }
     }
 
-    override suspend fun getAnnouncement(id: Long): ScheduledPostMetadataImpl<Long>? {
+     */
+
+    override suspend fun insertAnnouncement(schedulablePost: RawPost, authorId: Long?): Long {
         return withContext(dispatcher) {
-            queries.selectAnnouncement(id) { id, content, date, mentionIdStr, status ->
-                ScheduledPostMetadataImpl(
+            queries.insertAnnouncement(
+                schedulablePost.content.toString(),
+                schedulablePost.execInstant.toEpochMilli() / 1000L,
+                schedulablePost.postType,
+            ).executeAsOne()
+        }
+    }
+
+    override suspend fun getAnnouncement(id: Long): StoredRawPost<Long>? {
+        return withContext(dispatcher) {
+            queries.selectAnnouncement(id) {
+                    id: Long,
+                    content: String,
+                    scheduled_date: Long,
+                    announcement_type: String,
+                    status: String,
+                ->
+                StoredRawPost(
                     id,
-                    Instant.ofEpochSecond(date),
-                    content,
-                    mentionIdStr?.toULong(),
                     Status.valueOf(status),
+                    Json.decodeFromString(content),
+                    Instant.ofEpochSecond(scheduled_date),
+                    announcement_type,
                 )
+                // TODO serialize
             }.executeAsOneOrNull()
         }
     }
 
-    override suspend fun getAnnouncements(status: Status?): Set<ScheduledPostMetadataImpl<Long>> {
+    override suspend fun getAnnouncements(status: Status?): Set<StoredRawPost<Long>> {
         return withContext(dispatcher) {
-            queries.selectAnnouncements(status?.name) { id, content, date, mentionIdStr, status ->
-                ScheduledPostMetadataImpl(
-                    id,
-                    Instant.ofEpochSecond(date),
-                    content,
-                    mentionIdStr?.toULong(),
-                    Status.valueOf(status),
+            queries.selectAnnouncements(status?.name) {
+                    id: Long,
+                    content: String,
+                    scheduled_date: Long,
+                    announcement_type: String,
+                    status: String,
+                ->
+
+                StoredRawPost(
+                    id=id,
+                    status=Status.valueOf(status),
+                    content=Json.decodeFromString(content),
+                    execInstant=Instant.ofEpochSecond(scheduled_date),
+                    postType=announcement_type,
                 )
             }.executeAsList().toSet()
-        }
-    }
-
-    override suspend fun removeMentionRoleFrom(id: Long): Boolean {
-        return withContext(dispatcher) {
-            queries.unsetMentionFromAnnouncement(id).executeAsOneOrNull() != null
-        }
-    }
-
-    override suspend fun editAnnouncement(
-        id: Long,
-        content: String?,
-        scheduledDateTime: Instant?,
-        mentionRole: ULong?
-    ): Boolean {
-        return withContext(dispatcher) {
-            queries.editAnnouncement(
-                id=id,
-                content=content,
-                mentionId=mentionRole?.toString(),
-                date=scheduledDateTime?.epochSecond,
-            ).executeAsOneOrNull() != null
         }
     }
 

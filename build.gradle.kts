@@ -5,7 +5,7 @@ version = "0.1.8a"
 
 plugins {
     kotlin("jvm") version "1.8.20"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("plugin.serialization") version "1.9.22"
     id("app.cash.sqldelight") version "2.0.0-alpha05"
     application
 }
@@ -20,6 +20,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.10")
     implementation("dev.kord", "kord-core", "0.9.0")
 
     implementation("app.cash.sqldelight", "sqlite-driver", "2.0.0-alpha05")
@@ -30,7 +31,7 @@ dependencies {
 
     implementation("com.twelvemonkeys.imageio", "imageio-jpeg", "3.9.4")
     implementation("com.twelvemonkeys.imageio", "imageio-webp", "3.9.4")
-
+    
     val ktorVersion = "2.3.0"
 
     implementation("io.ktor", "ktor-client-core-jvm", ktorVersion)
