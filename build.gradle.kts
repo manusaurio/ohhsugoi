@@ -4,7 +4,7 @@ import kotlin.io.path.readLines
 version = "1.0.0a"
 
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "1.9.22"
     kotlin("plugin.serialization") version "1.9.22"
     id("app.cash.sqldelight") version "2.0.0-alpha05"
     application

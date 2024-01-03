@@ -82,8 +82,7 @@ enum class InteractionIDType(val prefix: String) {
 
     companion object {
         fun takeFromStringOrNull(str: String): InteractionIDType? {
-            // TODO: use enumEntries() (Kotlin >= 1.9)
-            return values().find {
+            return entries.find {
                 str.startsWith(it.prefix)
             }
         }
