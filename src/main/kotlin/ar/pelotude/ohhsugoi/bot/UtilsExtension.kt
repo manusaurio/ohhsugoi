@@ -758,25 +758,17 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                         val finishedPoll = pollsDb.getPoll(pollID)
 
                         if (finishedPoll !== null && !quietly) {
-                            val totalVotes = finishedPoll.options.sumOf { it.votes }
-                            val groupedOptions = finishedPoll.options.groupBy { it.votes }
-
-                            val rankedOptions = groupedOptions.toSortedMap(compareByDescending { it })
-                                .entries.flatMapIndexed { rank, (votes, pollOptions) ->
-                                    val individualOptProportion = pollOptions.first().votes.toDouble() / totalVotes
-                                    val individualOptPercentage = (individualOptProportion * 100).takeIf { !it.isNaN() } ?: 0.0
-
-                                    pollOptions.map { pollOption ->
-                                        Triple(rank, pollOption, individualOptPercentage)
-                                    }
+                            val rankedOptions = finishedPoll.options.groupBy { it.votes }
+                                .toSortedMap(compareByDescending { it })
+                                .values.flatMapIndexed { rank, pollOptions ->
+                                    pollOptions.map { o -> rank to o }
                                 }
 
                             val resultsText = rankedOptions.joinToString(
                                 separator="\n",
                                 prefix="«${finishedPoll.title}»: votación finalizada\n\n"
-                            ) { (rank, option, percentage) ->
-                                val shortenedPercentage = "%.2f".format(percentage)
-                                "${if (rank == 0) "\uD83C\uDFC6 " else ""}${option.description} ($shortenedPercentage%, ${option.votes})"
+                            ) { (rank, option) ->
+                                "${if (rank == 0) "\uD83C\uDFC6 " else ""}${option.description} (${option.votes})"
                             }
 
                             try {
