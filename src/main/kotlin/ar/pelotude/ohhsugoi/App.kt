@@ -2,6 +2,7 @@ package ar.pelotude.ohhsugoi
 
 import ar.pelotude.ohhsugoi.bot.MangaExtension
 import ar.pelotude.ohhsugoi.bot.UtilsExtension
+import ar.pelotude.ohhsugoi.bot.polls.MangaPollsExtension
 import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
 import ar.pelotude.ohhsugoi.koin.botModule
 import com.kotlindiscord.kord.extensions.ExtensibleBot
@@ -13,6 +14,7 @@ suspend fun main() {
         extensions {
             add(::MangaExtension)
             add { UtilsExtension<Long>() }
+            add { MangaPollsExtension<Long>() }
         }
 
         i18n {

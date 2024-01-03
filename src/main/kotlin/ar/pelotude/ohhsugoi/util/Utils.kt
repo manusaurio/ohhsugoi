@@ -1,5 +1,6 @@
 package ar.pelotude.ohhsugoi.util
 
+import dev.kord.core.entity.Guild
 import java.net.URL
 import java.nio.ByteBuffer
 import java.security.MessageDigest
@@ -52,4 +53,13 @@ fun ByteArray.calculateSHA256(): String {
     return MessageDigest.getInstance("SHA-256")
         .digest(this)
         .joinToString("") { "%02x".format(it) }
+}
+
+// it might  be wiser to convert ULongs to RoleBehaviour and use their `.mention`
+fun ULong?.toMentionOn(guild: Guild): String? {
+    return when (this) {
+        null -> null
+        guild.id.value -> "@everyone"
+        else -> "<@&$this>"
+    }
 }
