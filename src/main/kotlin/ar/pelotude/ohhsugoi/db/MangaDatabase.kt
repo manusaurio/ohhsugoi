@@ -25,8 +25,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import org.koin.core.component.inject
 import org.sqlite.SQLiteErrorCode
 import org.sqlite.SQLiteException
@@ -34,7 +32,6 @@ import java.io.IOException
 import java.net.URL
 import java.nio.ByteBuffer
 import java.nio.file.Files
-import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import kotlin.io.path.div
@@ -292,42 +289,13 @@ class MangaDatabaseSQLite(
 
     override suspend fun getAnnouncement(id: Long): StoredRawPost<Long>? {
         return withContext(dispatcher) {
-            queries.selectAnnouncement(id) {
-                    id: Long,
-                    content: String,
-                    scheduled_date: Long,
-                    announcement_type: String,
-                    status: String,
-                ->
-                StoredRawPost(
-                    id,
-                    Status.valueOf(status),
-                    Json.decodeFromString(content),
-                    Instant.ofEpochSecond(scheduled_date),
-                    announcement_type,
-                )
-            }.executeAsOneOrNull()
+            queries.selectAnnouncement(id, ::storedSQLDScheduledPostMapper).executeAsOneOrNull()
         }
     }
 
     override suspend fun getAnnouncements(status: Status?): Set<StoredRawPost<Long>> {
         return withContext(dispatcher) {
-            queries.selectAnnouncements(status?.name) {
-                    id: Long,
-                    content: String,
-                    scheduled_date: Long,
-                    announcement_type: String,
-                    status: String,
-                ->
-
-                StoredRawPost(
-                    id=id,
-                    status=Status.valueOf(status),
-                    content=Json.decodeFromString(content),
-                    execInstant=Instant.ofEpochSecond(scheduled_date),
-                    postType=announcement_type,
-                )
-            }.executeAsList().toSet()
+            queries.selectAnnouncements(status?.name, ::storedSQLDScheduledPostMapper).executeAsList().toSet()
         }
     }
 

@@ -1,7 +1,11 @@
 package ar.pelotude.ohhsugoi.db
 
+import ar.pelotude.ohhsugoi.db.scheduler.Status
+import ar.pelotude.ohhsugoi.db.scheduler.StoredRawPost
 import com.kotlindiscord.kord.extensions.utils.getKoin
 import io.ktor.http.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.net.URL
 import java.time.Instant
 
@@ -74,6 +78,20 @@ internal fun pollSQLDMapper(
         singleVote.boolean,
     )
 }
+
+internal fun storedSQLDScheduledPostMapper(
+    id: Long,
+    content: String,
+    scheduledDate: Long,
+    announcementType: String,
+    status: String,
+) = StoredRawPost(
+    id=id,
+    status=Status.valueOf(status),
+    content=Json.decodeFromString(content),
+    execInstant=Instant.ofEpochSecond(scheduledDate),
+    postType=announcementType,
+)
 
 internal fun String.toTagSet() = this.split(',').toSet()
 
