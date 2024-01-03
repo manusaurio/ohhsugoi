@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi.bot
+package ar.pelotude.ohhsugoi.bot.converters
 
 import com.kotlindiscord.kord.extensions.commands.Arguments
 import com.kotlindiscord.kord.extensions.commands.converters.ConverterToOptional
@@ -49,7 +49,7 @@ class OptionalLongListConverterBuilder : OptionalConverterBuilder<List<Long>>() 
 }
 
 fun Arguments.longList(
-        body: LongListConverterBuilder.() -> Unit,
+    body: LongListConverterBuilder.() -> Unit,
 ): SingleConverter<List<Long>> {
     val converterBuilder = LongListConverterBuilder()
     converterBuilder.body()
@@ -59,7 +59,7 @@ fun Arguments.longList(
 }
 
 fun Arguments.optionalLongList(
-        body: OptionalLongListConverterBuilder.() -> Unit,
+    body: OptionalLongListConverterBuilder.() -> Unit,
 ): OptionalConverter<List<Long>> {
     val converterBuilder = OptionalLongListConverterBuilder()
     converterBuilder.body()

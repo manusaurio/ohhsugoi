@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi.bot
+package ar.pelotude.ohhsugoi.bot.converters
 
 import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.Argument
@@ -96,8 +96,8 @@ class OptionalGenericListConverterBuilder<T: Any>(private val convertOrNull: (St
 }
 
 fun <T: Any> Arguments.list(
-        convertOrNullFunction: (String) -> T?,
-        body: GenericListConverterBuilder<T>.() -> Unit,
+    convertOrNullFunction: (String) -> T?,
+    body: GenericListConverterBuilder<T>.() -> Unit,
 ): SingleConverter<List<T>> {
     val converterBuilder = GenericListConverterBuilder(convertOrNullFunction)
     converterBuilder.body()
@@ -107,8 +107,8 @@ fun <T: Any> Arguments.list(
 }
 
 fun <T: Any> Arguments.optionalList(
-        convertOrNullFunction: (String) -> T?,
-        body: OptionalGenericListConverterBuilder<T>.() -> Unit,
+    convertOrNullFunction: (String) -> T?,
+    body: OptionalGenericListConverterBuilder<T>.() -> Unit,
 ): OptionalConverter<List<T>> {
     val converterBuilder = OptionalGenericListConverterBuilder(convertOrNullFunction)
     converterBuilder.body()

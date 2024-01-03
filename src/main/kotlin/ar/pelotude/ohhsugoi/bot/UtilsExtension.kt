@@ -1,5 +1,7 @@
 package ar.pelotude.ohhsugoi.bot
 
+import ar.pelotude.ohhsugoi.bot.converters.date
+import ar.pelotude.ohhsugoi.bot.converters.postId
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.Poll
 import ar.pelotude.ohhsugoi.db.PollException
