@@ -18,6 +18,7 @@ import ar.pelotude.ohhsugoi.util.image.asJpgByteArray
 import ar.pelotude.ohhsugoi.util.image.stitch
 import ar.pelotude.ohhsugoi.util.toMentionOn
 import com.kotlindiscord.kord.extensions.commands.Arguments
+import com.kotlindiscord.kord.extensions.commands.application.slash.publicSubCommand
 import com.kotlindiscord.kord.extensions.commands.converters.impl.long
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalBoolean
 import com.kotlindiscord.kord.extensions.commands.converters.impl.optionalLong
@@ -111,83 +112,88 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
     }
 
     override suspend fun setup() {
-        publicSlashCommand(::NewPollArguments) {
+        publicSlashCommand {
             name = "votación"
-            description = "Crea una votación"
+            description = "Crea una votación."
             guild(config.guild)
 
-            action {
-                respond {
-                    val mangas = with (arguments) {
-                        listOfNotNull(pollOptionA, pollOptionB, pollOptionC, pollOptionD).distinct().let {
-                            db.getMangas(*it.toLongArray())
+            publicSubCommand(::NewPollArguments) {
+                name = "mangas"
+                description = "Crea una votación con entradas de manga."
+
+                action {
+                    respond {
+                        val mangas = with (arguments) {
+                            listOfNotNull(pollOptionA, pollOptionB, pollOptionC, pollOptionD).distinct().let {
+                                db.getMangas(*it.toLongArray())
+                            }
                         }
-                    }
 
-                    val pollOptions = mangas.map { manga -> PollOption(manga.title) }
+                        val pollOptions = mangas.map { manga -> PollOption(manga.title) }
 
-                    @OptIn(EphemeralOrPublicView::class)
-                    if (mangas.size < 2) {
-                        respondWithError("No se encontraron suficientes entradas para crear una votación.")
-                        return@action
-                    }
+                        @OptIn(EphemeralOrPublicView::class)
+                        if (mangas.size < 2) {
+                            respondWithError("No se encontraron suficientes entradas para crear una votación.")
+                            return@action
+                        }
 
-                    // if it's already busy let's not stitch the covers
-                    // I don't want the RPi die out of an OOM error or a busy and slow swap
-                    val imgBytes = if (busyMutex.tryLock()) try {
-                        withContext(Dispatchers.IO) {
-                            mangas.mapNotNull {
-                                it.imgURLSource ?: this@MangaPollsExtension.javaClass.getResource("no-cover.jpg")
-                                    .also { url ->
-                                        if (url === null)
-                                            kordLogger.warn {
-                                                "Default cover image for manga entries could not be loaded."
-                                            }
+                        // if it's already busy let's not stitch the covers
+                        // I don't want the RPi die out of an OOM error or a busy and slow swap
+                        val imgBytes = if (busyMutex.tryLock()) try {
+                            withContext(Dispatchers.IO) {
+                                mangas.mapNotNull {
+                                    it.imgURLSource ?: this@MangaPollsExtension.javaClass.getResource("no-cover.jpg")
+                                        .also { url ->
+                                            if (url === null)
+                                                kordLogger.warn {
+                                                    "Default cover image for manga entries could not be loaded."
+                                                }
+                                        }
+                                }.takeIf { it.size > 1 }
+                                    ?.let(::stitch)
+                                    ?.asJpgByteArray()
+                            }
+                        } finally {
+                            busyMutex.unlock()
+                        } else null
+
+                        val pollCandidate = Poll(
+                            authorID = user.id.value.toLong(),
+                            title = arguments.title,
+                            description = arguments.description,
+                            imgByteArray = imgBytes,
+                            options = pollOptions,
+                            singleVote = arguments.singleVote ?: false,
+                        )
+
+                        val existingPoll = pollsDb.createPoll(pollCandidate)
+
+                        embeds.add(existingPoll.toEmbed())
+
+                        // voting choices:
+                        actionRow {
+                            existingPoll.options.forEachIndexed { i, opt ->
+                                interactionButton(
+                                    ButtonStyle.Primary,
+                                    InteractionIdType.POLL_VOTE_OPTION.preppendTo("${opt.id}"),
+                                ) {
+                                    val icon = optionIcons.getOrNull(i)?.plus(" ") ?: ""
+
+                                    label = "$icon${opt.description}".let {
+                                        if (it.length > 80) it.take(77) + "..." else it
                                     }
-                            }.takeIf { it.size > 1 }
-                                ?.let(::stitch)
-                                ?.asJpgByteArray()
-                        }
-                    } finally {
-                        busyMutex.unlock()
-                    } else null
-
-                    val pollCandidate = Poll(
-                        authorID = user.id.value.toLong(),
-                        title = arguments.title,
-                        description = arguments.description,
-                        imgByteArray = imgBytes,
-                        options = pollOptions,
-                        singleVote = arguments.singleVote ?: false,
-                    )
-
-                    val existingPoll = pollsDb.createPoll(pollCandidate)
-
-                    embeds.add(existingPoll.toEmbed())
-
-                    // voting choices:
-                    actionRow {
-                        existingPoll.options.forEachIndexed { i, opt ->
-                            interactionButton(
-                                ButtonStyle.Primary,
-                                InteractionIdType.POLL_VOTE_OPTION.preppendTo("${opt.id}"),
-                            ) {
-                                val icon = optionIcons.getOrNull(i)?.plus(" ") ?: ""
-
-                                label = "$icon${opt.description}".let {
-                                    if (it.length > 80) it.take(77) + "..." else it
                                 }
                             }
                         }
-                    }
 
-                    // config:
-                    actionRow {
-                        interactionButton(
-                            ButtonStyle.Danger,
-                            InteractionIdType.POLL_FINISH_POLL_MENU.preppendTo("${existingPoll.id}"),
-                        ) {
-                            label = "Cerrar"
+                        // config:
+                        actionRow {
+                            interactionButton(
+                                ButtonStyle.Danger,
+                                InteractionIdType.POLL_FINISH_POLL_MENU.preppendTo("${existingPoll.id}"),
+                            ) {
+                                label = "Cerrar"
+                            }
                         }
                     }
                 }
