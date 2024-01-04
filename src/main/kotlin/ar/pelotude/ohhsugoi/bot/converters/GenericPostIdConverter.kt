@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi.bot
+package ar.pelotude.ohhsugoi.bot.converters
 
 import com.kotlindiscord.kord.extensions.commands.Argument
 import com.kotlindiscord.kord.extensions.commands.Arguments

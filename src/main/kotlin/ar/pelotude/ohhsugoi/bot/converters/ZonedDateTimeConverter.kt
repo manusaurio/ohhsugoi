@@ -1,4 +1,4 @@
-package ar.pelotude.ohhsugoi.bot
+package ar.pelotude.ohhsugoi.bot.converters
 
 import ar.pelotude.ohhsugoi.db.UsersDatabase
 import com.kotlindiscord.kord.extensions.DiscordRelayedException

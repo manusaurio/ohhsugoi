@@ -1,8 +1,13 @@
 package ar.pelotude.ohhsugoi.db
 
+import ar.pelotude.ohhsugoi.db.scheduler.Status
+import ar.pelotude.ohhsugoi.db.scheduler.StoredRawPost
 import com.kotlindiscord.kord.extensions.utils.getKoin
 import io.ktor.http.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.net.URL
+import java.time.Instant
 
 val koin = getKoin()
 
@@ -16,6 +21,18 @@ internal fun storedImgURL(fileName: String): URL {
             .build()
 
     // TODO: Change URLs to ktor Urls here and everywhere else
+    return URL(url.toString())
+}
+
+internal fun storedPollImgUrl(fileName: String): URL {
+    val config: DatabaseConfiguration = koin.get()
+    val webpage = config.webpage
+    val subDirectory = config.pollImagesUrlPath
+
+    val url = URLBuilder(webpage)
+        .appendPathSegments(subDirectory, fileName)
+        .build()
+
     return URL(url.toString())
 }
 
@@ -43,6 +60,38 @@ internal fun mangaSQLDmapper(
         tags=tags?.toTagSet() ?: setOf()
     )
 }
+
+internal fun pollSQLDMapper(
+    id: Long, insertionDate: Long, authorID: Long?, title: String, description: String?,
+    imageFileName: String?, singleVote: Long, finishedDate: Long?,
+    existingPollOptions: List<ExistingPollOption>,
+    ): ExistingPoll {
+    return ExistingPoll(
+        id,
+        Instant.ofEpochSecond(insertionDate),
+        authorID,
+        title,
+        description,
+        finishedDate?.let { Instant.ofEpochSecond(it) },
+        imageFileName?.let(::storedPollImgUrl),
+        existingPollOptions,
+        singleVote.boolean,
+    )
+}
+
+internal fun storedSQLDScheduledPostMapper(
+    id: Long,
+    content: String,
+    scheduledDate: Long,
+    announcementType: String,
+    status: String,
+) = StoredRawPost(
+    id=id,
+    status=Status.valueOf(status),
+    content=Json.decodeFromString(content),
+    execInstant=Instant.ofEpochSecond(scheduledDate),
+    postType=announcementType,
+)
 
 internal fun String.toTagSet() = this.split(',').toSet()
 

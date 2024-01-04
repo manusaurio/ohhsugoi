@@ -1,5 +1,7 @@
 package ar.pelotude.ohhsugoi.bot
 
+import ar.pelotude.ohhsugoi.bot.converters.list
+import ar.pelotude.ohhsugoi.bot.converters.optionalList
 import ar.pelotude.ohhsugoi.db.MangaChanges
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.UpdateFlags

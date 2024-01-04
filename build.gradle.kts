@@ -1,11 +1,11 @@
 import kotlin.io.path.div
 import kotlin.io.path.readLines
 
-version = "0.1.8a"
+version = "1.0.0a"
 
 plugins {
-    kotlin("jvm") version "1.8.20"
-    kotlin("plugin.serialization") version "1.6.10"
+    kotlin("jvm") version "1.9.22"
+    kotlin("plugin.serialization") version "1.9.22"
     id("app.cash.sqldelight") version "2.0.0-alpha05"
     application
 }
@@ -20,10 +20,12 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.10")
     implementation("dev.kord", "kord-core", "0.9.0")
 
     implementation("app.cash.sqldelight", "sqlite-driver", "2.0.0-alpha05")
     implementation("app.cash.sqldelight", "primitive-adapters", "2.0.0-alpha05")
+    implementation("org.xerial", "sqlite-jdbc", "3.44.1.0")
     implementation("org.slf4j", "slf4j-simple","2.0.7")
     implementation("com.kotlindiscord.kord.extensions", "kord-extensions", "1.5.7-SNAPSHOT")
 

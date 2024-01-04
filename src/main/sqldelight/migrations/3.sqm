@@ -1,0 +1,55 @@
+CREATE TABLE poll(
+  id INTEGER PRIMARY KEY NOT NULL,
+  insertion_date INTEGER NOT NULL DEFAULT (UNIXEPOCH()),
+  author_id INTEGER,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_filename TEXT,
+  single_vote INTEGER NOT NULL DEFAULT 0,
+  finished_date INTEGER -- when it actually finished (if it's NULL then it's an ongoing poll)
+);
+
+-- we do not store the order or options
+-- to make our lives easier, we sort it by .rowid
+CREATE TABLE poll_option(
+  id BLOB PRIMARY KEY NOT NULL,
+  poll_id INTEGER NOT NULL,
+  description TEXT NOT NULL,
+  FOREIGN KEY(poll_id) REFERENCES poll(id)
+);
+
+CREATE TABLE vote(
+  user_id INTEGER NOT NULL,
+  poll_id INTEGER NOT NULL,
+  poll_option_id BLOB NOT NULL,
+  UNIQUE(user_id, poll_id, poll_option_id),
+  FOREIGN KEY(poll_id) REFERENCES poll(id),
+  FOREIGN KEY(poll_option_id) REFERENCES poll_option(id)
+);
+
+-- BEGIN voting rules
+CREATE TRIGGER enforce_single_vote_rule_insert
+AFTER INSERT ON vote
+WHEN (
+  SELECT single_vote FROM poll WHERE poll.id = new.poll_id
+) = 1
+BEGIN
+  DELETE FROM vote WHERE poll_id = new.poll_id AND poll_option_id != new.poll_option_id AND new.user_id = user_id;
+END;
+
+CREATE TRIGGER prevent_vote_on_finished_poll_delete
+BEFORE DELETE ON vote
+WHEN (SELECT finished_date FROM poll WHERE old.poll_id = poll.id) IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'Cannot delete vote: poll has been marked as finished');
+END;
+
+CREATE TRIGGER prevent_vote_on_finished_poll_insert
+BEFORE INSERT ON vote
+WHEN (SELECT finished_date FROM poll WHERE new.poll_id = poll.id) IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'Cannot insert vote: poll has been marked as finished');
+END;
+-- END voting rules
+
+PRAGMA user_version = 4;

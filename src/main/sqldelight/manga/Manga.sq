@@ -48,7 +48,7 @@ CREATE TABLE scheduled_announcement(
   id INTEGER PRIMARY KEY NOT NULL,
   content TEXT NOT NULL,
   scheduled_date INTEGER NOT NULL,
-  mention_snowflake_id TEXT,
+  announcement_type TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'PENDING' -- PENDING, SENT, CANCELLED, FAILED
 );
 
@@ -57,7 +57,61 @@ CREATE TABLE discord_user_timezone(
   timezone TEXT
 );
 
-PRAGMA user_version = 3;
+CREATE TABLE poll(
+  id INTEGER PRIMARY KEY NOT NULL,
+  insertion_date INTEGER NOT NULL DEFAULT (UNIXEPOCH()),
+  author_id INTEGER,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_filename TEXT,
+  single_vote INTEGER NOT NULL DEFAULT 0,
+  finished_date INTEGER -- when it actually finished (if it's NULL then it's an ongoing poll)
+);
+
+-- we do not store the order or options
+-- to make our lives easier, we sort it by .rowid
+CREATE TABLE poll_option(
+  id BLOB PRIMARY KEY NOT NULL,
+  poll_id INTEGER NOT NULL,
+  description TEXT NOT NULL,
+  FOREIGN KEY(poll_id) REFERENCES poll(id)
+);
+
+CREATE TABLE vote(
+  user_id INTEGER NOT NULL,
+  poll_id INTEGER NOT NULL,
+  poll_option_id BLOB NOT NULL,
+  UNIQUE(user_id, poll_id, poll_option_id),
+  FOREIGN KEY(poll_id) REFERENCES poll(id),
+  FOREIGN KEY(poll_option_id) REFERENCES poll_option(id)
+);
+
+-- BEGIN voting rules
+CREATE TRIGGER enforce_single_vote_rule_insert
+AFTER INSERT ON vote
+WHEN (
+  SELECT single_vote FROM poll WHERE poll.id = new.poll_id
+) = 1
+BEGIN
+  DELETE FROM vote WHERE poll_id = new.poll_id AND poll_option_id != new.poll_option_id AND new.user_id = user_id;
+END;
+
+CREATE TRIGGER prevent_vote_on_finished_poll_delete
+BEFORE DELETE ON vote
+WHEN (SELECT finished_date FROM poll WHERE old.poll_id = poll.id) IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'Cannot delete vote: poll has been marked as finished');
+END;
+
+CREATE TRIGGER prevent_vote_on_finished_poll_insert
+BEFORE INSERT ON vote
+WHEN (SELECT finished_date FROM poll WHERE new.poll_id = poll.id) IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'Cannot insert vote: poll has been marked as finished');
+END;
+-- END voting rules
+
+PRAGMA user_version = 5;
 
 searchTagTitle:
 SELECT t.title FROM tag t WHERE title LIKE :name || '%' LIMIT :limit;
@@ -185,8 +239,8 @@ HAVING (MAX(tag.title = :tag_filter_a) OR :tag_filter_a IS NULL)
 LIMIT :limit;
 
 insertAnnouncement:
-INSERT INTO scheduled_announcement(content, scheduled_date, mention_snowflake_id)
-VALUES(:content, :scheduled_date, :mention_id) RETURNING id;
+INSERT INTO scheduled_announcement(content, scheduled_date, announcement_type)
+VALUES(:content, :scheduled_date, :announcement_type) RETURNING id;
 
 markAnnouncementAsSent:
 UPDATE scheduled_announcement SET status = 'SENT' WHERE id = :id RETURNING id;
@@ -198,23 +252,18 @@ markAnnouncementAsFailed:
 UPDATE scheduled_announcement SET status = 'FAILED' WHERE id = :id AND status = 'PENDING' RETURNING id;
 
 selectAnnouncement:
-SELECT id, content, scheduled_date, mention_snowflake_id, status FROM scheduled_announcement WHERE id = :announcement_id;
+SELECT id, content, scheduled_date, announcement_type, status FROM scheduled_announcement WHERE id = :announcement_id;
 
 selectAnnouncements:
-SELECT id, content, scheduled_date, mention_snowflake_id, status FROM scheduled_announcement WHERE status = :status OR :status IS NULL;
+SELECT id, content, scheduled_date, announcement_type, status FROM scheduled_announcement WHERE status = :status OR :status IS NULL;
 
 editAnnouncement:
 UPDATE scheduled_announcement
 SET
   content = CASE WHEN :content IS NULL THEN content ELSE :content END,
-  mention_snowflake_id = CASE WHEN :mentionId IS NULL THEN mention_snowflake_id ELSE :mentionId END,
   scheduled_date = CASE WHEN :date IS NULL THEN scheduled_date ELSE :date END
 WHERE id = :id AND status = 'PENDING'
 RETURNING id;
-
-unsetMentionFromAnnouncement:
-UPDATE scheduled_announcement
-SET mention_snowflake_id = NULL WHERE id = :id AND status = 'PENDING' RETURNING id;
 
 insertUser:
 INSERT INTO discord_user_timezone(snowflake_id, timezone) VALUES (:snowflake_id, :timezone)
@@ -222,3 +271,58 @@ ON CONFLICT(snowflake_id) DO UPDATE SET timezone = :timezone;
 
 getUser:
 SELECT dut.snowflake_id, dut.timezone FROM discord_user_timezone dut WHERE snowflake_id = :snowflake_id;
+
+insertPoll:
+INSERT INTO poll(author_id, title, description, single_vote, image_filename)
+  VALUES(:authorId, :title, :description, :singleVote, :imageFileName)
+RETURNING id;
+
+insertPollOption:
+INSERT INTO poll_option(id, poll_id, description)
+  VALUES(:pollOptionID, :pollID, :description);
+
+selectPoll:
+SELECT
+  id, insertion_date, author_id, title,
+  description, image_filename, single_vote,
+  finished_date
+FROM poll
+WHERE id = :pollID
+AND :finishedFilter IS NULL
+OR :finishedFilter = 1 AND finished_date IS NOT NULL
+OR :finishedFilter = 2 AND finished_date IS NULL;
+
+selectPollByOptionID:
+SELECT
+  p.id, p.insertion_date, p.author_id, title,
+  p.description, p.image_filename, p.single_vote,
+  p.finished_date
+FROM poll p
+JOIN poll_option po ON p.id = po.poll_id WHERE po.id = :pollID;
+
+selectPollOptionsByPollID:
+SELECT po.id, po.description, COUNT(v.poll_option_id) AS votes FROM poll_option po
+LEFT JOIN vote v ON po.id = v.poll_option_id
+LEFT JOIN poll p ON po.poll_id = p.id
+WHERE p.id = :pollID
+GROUP BY po.id
+ORDER BY po.rowid; -- hacky
+
+finishPoll:
+UPDATE poll SET finished_date = UNIXEPOCH() WHERE id = :pollID AND finished_date IS NULL
+RETURNING 1;
+
+toggleVote {
+  DELETE FROM vote
+  WHERE
+    user_id = :userID
+    AND poll_option_id = :pollOptionID;
+
+  INSERT INTO vote(user_id, poll_id, poll_option_id)
+  SELECT :userID, p.id, :pollOptionID
+  FROM poll p
+  JOIN poll_option po ON p.id = po.poll_id AND po.id = :pollOptionID
+  WHERE (SELECT Changes() = 0);
+
+  SELECT Changes() AS positive FROM poll_option WHERE id = :pollOptionID;
+}

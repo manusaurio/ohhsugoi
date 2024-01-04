@@ -10,4 +10,6 @@ class DatabaseConfiguration(
         val mangaImageDirectory: Path,
         val mangaCoversUrlPath: String,
         val sqlitePath: String,
+        val pollImagesDirectory: Path,
+        val pollImagesUrlPath: String,
 )

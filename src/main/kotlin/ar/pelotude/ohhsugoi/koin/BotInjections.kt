@@ -7,10 +7,13 @@ import ar.pelotude.ohhsugoi.bot.UtilsExtensionConfiguration
 import ar.pelotude.ohhsugoi.db.DatabaseConfiguration
 import ar.pelotude.ohhsugoi.db.MangaDatabase
 import ar.pelotude.ohhsugoi.db.MangaDatabaseSQLite
+import ar.pelotude.ohhsugoi.db.PollsDatabase
 import ar.pelotude.ohhsugoi.db.UsersDatabase
 import ar.pelotude.ohhsugoi.db.scheduler.ScheduledRegistry
 import ar.pelotude.ohhsugoi.db.scheduler.Scheduler
 import ar.pelotude.ohhsugoi.db.scheduler.SchedulerConfiguration
+import ar.pelotude.ohhsugoi.db.scheduler.platforms.DiscordWebhookMessage
+import ar.pelotude.ohhsugoi.db.scheduler.platforms.XPost
 import com.kotlindiscord.kord.extensions.DiscordRelayedException
 import com.kotlindiscord.kord.extensions.commands.CommandContext
 import dev.kord.common.entity.Snowflake
@@ -25,7 +28,12 @@ import java.nio.file.Path
 import kotlin.io.path.createDirectories
 
 val botModule = module {
-    single { MangaDatabaseSQLite() } binds arrayOf(MangaDatabase::class, ScheduledRegistry::class, UsersDatabase::class)
+    single { MangaDatabaseSQLite() } binds arrayOf(
+        MangaDatabase::class,
+        ScheduledRegistry::class,
+        UsersDatabase::class,
+        PollsDatabase::class,
+    )
 
     single<(suspend AutoCompleteInteraction.(AutoCompleteInteractionCreateEvent) -> Unit)?>(
             named("mangaIdAutoCompletion")
@@ -43,7 +51,12 @@ val botModule = module {
         }
     }
 
-    single<Scheduler<Long>> { Scheduler(get()) }
+    single<Scheduler<Long>> {
+        Scheduler<Long>(get()).apply {
+            registerPostType<DiscordWebhookMessage>()
+            registerPostType<XPost>()
+        }
+    }
 
     single<suspend (String, CommandContext) -> Long> {
         { value, context ->
@@ -77,24 +90,30 @@ val botModule = module {
         DatabaseConfiguration(
             mangaCoversWidth=225,
             mangaCoversHeight=340,
-            Url(System.getenv("WEBPAGE")),
-            Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
-            System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
-            Path.of(System.getenv("SQLITE_FILE_PATH")!!).apply { parent.createDirectories() }.toString(),
+            webpage=Url(System.getenv("WEBPAGE")),
+            mangaImageDirectory=Path.of(System.getenv("MANGA_IMAGE_DIRECTORY")),
+            mangaCoversUrlPath=System.getenv("MANGA_COVERS_URL_SUBDIRECTORY"),
+            sqlitePath=Path.of(System.getenv("SQLITE_FILE_PATH")!!).apply { parent.createDirectories() }.toString(),
+            pollImagesDirectory=Path.of(System.getenv("POLLS_IMAGE_DIRECTORY")),
+            pollImagesUrlPath=System.getenv("POLL_IMAGES_URL_SUBDIRECTORY"),
         )
     }
 
     single<UtilsExtensionConfiguration> {
         UtilsExtensionConfiguration(
-                Snowflake(System.getenv("DISCORD_HELPER_ROLE")!!),
-                get(),
+            allowedRole=Snowflake(System.getenv("DISCORD_HELPER_ROLE")!!),
+            announcementRole=Snowflake(System.getenv("KORD_WEEB_ROLE")!!),
+            generalConfig=get(),
         )
     }
 
     single<SchedulerConfiguration> {
         SchedulerConfiguration(
-                System.getenv("KORD_WEEB_SERVER")!!.toULong(),
-                System.getenv("DISCORD_WEBHOOK"),
+            webhook=System.getenv("DISCORD_WEBHOOK"),
+            xConsumerKey=System.getenv("X_CONSUMER_KEY"),
+            xConsumerKeySecret=System.getenv("X_CONSUMER_SECRET"),
+            xAccessToken=System.getenv("X_ACCESS_TOKEN"),
+            xAccessTokenSecret=System.getenv("X_ACCESS_TOKEN_SECRET"),
         )
     }
 

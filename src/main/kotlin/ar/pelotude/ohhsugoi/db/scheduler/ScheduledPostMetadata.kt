@@ -1,6 +1,10 @@
 package ar.pelotude.ohhsugoi.db.scheduler
 
+import io.ktor.client.*
+import io.ktor.http.*
+import kotlinx.serialization.json.JsonObject
 import java.time.Instant
+import kotlin.reflect.KClass
 
 enum class Status(val code: Long) {
     PENDING(0),
@@ -9,37 +13,62 @@ enum class Status(val code: Long) {
     FAILED(3),
 }
 
-interface ScheduledPostMetadata<T> {
-    val id: T
+interface ScheduledPostMetadata {
     val execInstant: Instant
     val text: String
-    val mentionId: ULong?
+}
+
+interface Storable<T : Any> {
+    val id: T
     val status: Status
 }
 
-class ScheduledPostMetadataImpl<T>(
-        override val id: T,
-        override val execInstant: Instant,
-        override val text: String,
-        override val mentionId: ULong?,
-        override val status: Status = Status.PENDING,
-) : ScheduledPostMetadata<T> {
-    override fun toString() = "ScheduledPostMetadata(id=$id, dateTime=$execInstant, text=\"$text\")"
+open class RawPost(
+    val content: JsonObject,
+    val execInstant: Instant,
+    val postType: String,
+)
 
-    override fun hashCode() = id.hashCode() + execInstant.hashCode() + text.hashCode() * 31
+class StoredRawPost<T: Any>(
+    override val id: T,
+    override val status: Status,
+    content: JsonObject,
+    execInstant: Instant,
+    postType: String,
+) : RawPost(content, execInstant, postType), Storable<T>
 
-    override fun equals(other: Any?): Boolean {
-        return if (other !is ScheduledPostMetadataImpl<*>) false
-        else id == other.id && execInstant == other.execInstant && text == other.text
-    }
+class StoredPost<T : Any, U : SchedulablePost>(
+    val post: U,
+    override val id: T,
+    override val status: Status = Status.PENDING,
+) : Storable<T>, SchedulablePost by post
 
-    operator fun component1() = id
+interface SchedulablePost : ScheduledPostMetadata {
+    val identifier: String
 
-    operator fun component2() = execInstant
-
-    operator fun component3() = text
-
-    operator fun component4() = mentionId
-
-    operator fun component5() = status
+    suspend fun process(client: HttpClient): HttpStatusCode
 }
+
+/**
+ * Class to specify how [SchedulablePost]s should be saved in a registry,
+ * such as a database, as JSON.
+ *
+ * This abstract class for serializers is not meant to be implemented to
+ * generate the JSON objects that are sent to the target online platforms
+ * or anything similar: it's purpose is to be used to serialize and
+ * deserialize schedulable posts as they are understood by the scheduler.
+ */
+abstract class SchedulablePostSerializer<T : SchedulablePost> {
+    abstract fun fromJson(json: JsonObject, execInstant: Instant): T
+
+    abstract fun toJson(post: T): JsonObject
+}
+
+/**
+ * Annotation to be used in [SchedulablePost]s, specifying their [identifier] and [SchedulablePostSerializer].
+ *
+ * Classes using this annotation can then be registered in the scheduler.
+ */
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS)
+annotation class SerializableStorablePost(val identifier: String, val postSerializer: KClass<out SchedulablePostSerializer<*>>)
