@@ -17,3 +17,9 @@ Environment variables:
 | `DISCORD_HELPER_ROLE`           | Role allowed to use some advanced features                             |
 | `DISCORD_WEBHOOK`               | Webhook URL to send Discord announcements                              |
 | `DISCORD_LOGGER_CHANNEL`        | Channel id to be used as a log when errors arise or other information  |
+| `POLLS_IMAGE_DIRECTORY`         | Path where images for the polls should be saved                        |
+| `POLL_IMAGES_URL_SUBDIRECTORY`  | URL for the poll images (e.g.: `/static/pollimages`)                   |
+| `X_CONSUMER_KEY`                | Key used for X API                                                     |
+| `X_CONSUMER_SECRET`             | Secret key used for X API                                              |
+| `X_ACCESS_TOKEN`                | OAuth token used for X                                                 |
+| `X_ACCESS_TOKEN_SECRET`         | OAuth secret used for X                                                |
