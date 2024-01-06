@@ -4,7 +4,10 @@ enum class InteractionIdType(val prefix: String) {
     POLL_VOTE_OPTION("p-vo#"),
     POLL_FINISH_POLL_MENU("p-fpm#"),
     POLL_FINISH_POLL_QUIETLY("p-fpq#"),
-    POLL_FINISH_POLL_LOUDLY("p-fpl#");
+    POLL_FINISH_POLL_LOUDLY("p-fpl#"),
+    MANGA_POLL_ENTRIES_MENU("mp-em#"),
+    MANGA_POLL_ENTRY_REQUEST("mp-er#"),
+    ;
 
     fun preppendTo(str: String) = "$prefix$str"
 

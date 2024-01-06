@@ -2,6 +2,7 @@ package ar.pelotude.ohhsugoi.bot.polls
 
 import ar.pelotude.ohhsugoi.bot.EphemeralOrPublicView
 import ar.pelotude.ohhsugoi.bot.UtilsExtensionConfiguration
+import ar.pelotude.ohhsugoi.bot.mangaView
 import ar.pelotude.ohhsugoi.bot.optionIcons
 import ar.pelotude.ohhsugoi.bot.respondWithError
 import ar.pelotude.ohhsugoi.bot.toEmbed
@@ -40,7 +41,11 @@ import dev.kord.core.entity.interaction.AutoCompleteInteraction
 import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildButtonInteractionCreateEvent
 import dev.kord.core.kordLogger
+import dev.kord.rest.builder.RequestBuilder
+import dev.kord.rest.builder.message.create.MessageCreateBuilder
 import dev.kord.rest.builder.message.create.actionRow
+import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.json.request.MultipartInteractionResponseCreateRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Mutex
@@ -188,6 +193,15 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
 
                         // config:
                         actionRow {
+                            interactionButton(
+                                ButtonStyle.Secondary,
+                                InteractionIdType.MANGA_POLL_ENTRIES_MENU.preppendTo(
+                                    mangas.joinToString(separator=",", prefix="${mangas.first().id},") { "${it.id}" }
+                                )
+                            ) {
+                                label = "Info. de manga"
+                            }
+
                             interactionButton(
                                 ButtonStyle.Danger,
                                 InteractionIdType.POLL_FINISH_POLL_MENU.preppendTo("${existingPoll.id}"),
@@ -352,6 +366,51 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
                             }
                         }
                     }
+
+                    InteractionIdType.MANGA_POLL_ENTRIES_MENU -> {
+                        event.interaction.respondEphemeral {
+                            addMangaOptionsEmbed(id)
+                        }
+                    }
+
+                    InteractionIdType.MANGA_POLL_ENTRY_REQUEST -> {
+                        event.interaction.updateEphemeralMessage {
+                            addMangaOptionsEmbed(id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun <T> T.addMangaOptionsEmbed(mangaIds: String)
+            where T : MessageCreateBuilder,
+                  T : RequestBuilder<MultipartInteractionResponseCreateRequest> {
+        val (selectedId, buttonMangaIds) = mangaIds.split(',').let { ids ->
+            ids.first() to ids.drop(1)
+        }
+
+        val newIdsSuffix = buttonMangaIds.joinToString(",")
+
+        val mangas = db.getMangas(*buttonMangaIds.map(String::toLong).toLongArray())
+        val displayedManga = mangas.firstOrNull { it.id == selectedId.toLong() }
+
+        if (displayedManga !== null) {
+            embed {
+                mangaView(displayedManga)
+            }
+        } else {
+            content = "El manga seleccionado no está disponible."
+        }
+
+        actionRow {
+            mangas.forEach { manga ->
+                interactionButton(
+                    ButtonStyle.Secondary,
+                    InteractionIdType.MANGA_POLL_ENTRY_REQUEST.preppendTo("${manga.id},$newIdsSuffix")
+                ) {
+                    val title = manga.title
+                    label = if (title.length > 80) title.take(77) + "..." else title
                 }
             }
         }
