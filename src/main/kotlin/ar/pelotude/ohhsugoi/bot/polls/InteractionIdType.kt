@@ -9,6 +9,14 @@ enum class InteractionIdType(val prefix: String) {
     MANGA_POLL_ENTRY_REQUEST("mp-er#"),
     ;
 
+    init {
+        InteractionIdType.entries.groupingBy { it.prefix }
+            .eachCount().entries.find { it.value > 1 }
+            ?.let {
+                throw IllegalStateException("Prefix ${it.key} was assigned to multiple constants.")
+            }
+    }
+
     fun preppendTo(str: String) = "$prefix$str"
 
     companion object {
