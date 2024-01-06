@@ -217,7 +217,7 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
         event<GuildButtonInteractionCreateEvent> {
             action {
                 val componentId = event.interaction.componentId
-                val id = InteractionIdType.removeFromString(componentId)
+                val metaString = InteractionIdType.removeFromString(componentId)
 
                 val requestType = InteractionIdType.takeFromStringOrNull(componentId)
                     ?: return@action
@@ -227,7 +227,7 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
                         event.interaction.respondEphemeral {
                             content = "¿Cerrar con, o sin anuncios?"
 
-                            val pollIdPlusMsgId = "$id#${event.interaction.message.id.value}"
+                            val pollIdPlusMsgId = "$metaString#${event.interaction.message.id.value}"
 
                             actionRow {
                                 interactionButton(
@@ -251,7 +251,7 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
                         val deferredResponse = kord.async { event.interaction.deferEphemeralResponse() }
 
                         val content: String = try {
-                            val optionID = UUID.fromString(id)
+                            val optionID = UUID.fromString(metaString)
                             val vote = pollsDb.vote(optionID, event.interaction.user.id.value)
                             val votedPoll = pollsDb.getPollByOptionID(optionID)!!
                             val pollEmbed = votedPoll.toEmbed()
@@ -297,7 +297,7 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
 
                         val quietly = requestType == InteractionIdType.POLL_FINISH_POLL_QUIETLY
 
-                        val (pollID, pollMessageID) = id.split('#').let { (a, b) ->
+                        val (pollID, pollMessageID) = metaString.split('#').let { (a, b) ->
                             a.toLong() to Snowflake(b.toLong())
                         }
 
@@ -369,13 +369,13 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
 
                     InteractionIdType.MANGA_POLL_ENTRIES_MENU -> {
                         event.interaction.respondEphemeral {
-                            addMangaOptionsEmbed(id)
+                            addMangaOptionsEmbed(metaString)
                         }
                     }
 
                     InteractionIdType.MANGA_POLL_ENTRY_REQUEST -> {
                         event.interaction.updateEphemeralMessage {
-                            addMangaOptionsEmbed(id)
+                            addMangaOptionsEmbed(metaString)
                         }
                     }
                 }
