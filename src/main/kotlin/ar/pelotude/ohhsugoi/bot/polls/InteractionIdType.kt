@@ -34,7 +34,6 @@ enum class InteractionIdType(val prefix: String) {
 
     companion object {
         init {
-            println("Checking...")
             InteractionIdType.entries.groupingBy { it.prefix }
                 .eachCount().entries.find { it.value > 1 }
                 ?.let {
