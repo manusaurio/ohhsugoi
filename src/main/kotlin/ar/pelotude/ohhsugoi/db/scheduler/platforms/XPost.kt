@@ -30,7 +30,7 @@ class XPost(
         const val IDENTIFIER = "X_POST_WEBHOOK_MESSAGE"
     }
 
-    override val identifier: String = Companion.IDENTIFIER
+    override val identifier: String = IDENTIFIER
 
     private val config = get<SchedulerConfiguration>()
 
