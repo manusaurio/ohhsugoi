@@ -29,7 +29,7 @@ import dev.kord.core.entity.interaction.AutoCompleteInteraction
 import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.embed
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import java.io.IOException
@@ -379,7 +379,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     )
 
                     mangaList.size == 1 -> respond {
-                        embeds.add(EmbedBuilder().mangaView(mangaList.first()))
+                        embeds = mutableListOf(EmbedBuilder().mangaView(mangaList.first()))
                     }
 
                     mangaList.size <= 5 -> respondWithSuccess(
@@ -429,7 +429,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                     )
 
                     mangaList.size == 1 -> respond {
-                        embeds.add(EmbedBuilder().mangaView(mangaList.first()))
+                        embeds = mutableListOf(EmbedBuilder().mangaView(mangaList.first()))
                     }
 
                     else -> respondingPaginator {

@@ -42,9 +42,9 @@ import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
 import dev.kord.core.event.interaction.GuildButtonInteractionCreateEvent
 import dev.kord.core.kordLogger
 import dev.kord.rest.builder.RequestBuilder
+import dev.kord.rest.builder.message.actionRow
 import dev.kord.rest.builder.message.create.MessageCreateBuilder
-import dev.kord.rest.builder.message.create.actionRow
-import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.embed
 import dev.kord.rest.json.request.MultipartInteractionResponseCreateRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -173,7 +173,7 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
 
                         val existingPoll = pollsDb.createPoll(pollCandidate)
 
-                        embeds.add(existingPoll.toEmbed())
+                        embeds = mutableListOf(existingPoll.toEmbed())
 
                         // voting choices:
                         actionRow {
@@ -332,9 +332,9 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
                             try {
                                 scheduler.schedule(
                                     DiscordWebhookMessage(
-                                        content=config.announcementRole.value.toMentionOn(kord.getGuildOrThrow(config.guild)),
+                                        content=config.announcementRole.value.toMentionOn(kord.getGuild(config.guild)),
                                         embedText=resultsText,
-                                        execInstant= Instant.now(),
+                                        execInstant=Instant.now(),
                                     )
                                 )
                             } catch (e: RequestException) {

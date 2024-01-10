@@ -16,7 +16,7 @@ import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.entity.User
 import dev.kord.core.event.interaction.ButtonInteractionCreateEvent
 import dev.kord.rest.builder.message.EmbedBuilder
-import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.embed
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -245,8 +245,8 @@ annotation class EphemeralOrPublicView
 @EphemeralOrPublicView
 suspend inline fun SlashCommandContext<*, *, *>.respondEphemeralOrPublicEmbed(embed: EmbedBuilder, public: Boolean) {
     when (this) {
-        is EphemeralInteractionContext -> if (public) respondPublic { embeds.add(embed) } else respond { embeds.add(embed) }
-        is PublicInteractionContext -> if (public) respond { embeds.add(embed) } else respondEphemeral { embeds.add(embed) }
+        is EphemeralInteractionContext -> if (public) respondPublic { embeds = mutableListOf(embed) } else respond { embeds = mutableListOf(embed) }
+        is PublicInteractionContext -> if (public) respond { embeds = mutableListOf(embed) } else respondEphemeral { embeds = mutableListOf(embed) }
     }
 }
 

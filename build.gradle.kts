@@ -1,7 +1,7 @@
 import kotlin.io.path.div
 import kotlin.io.path.readLines
 
-version = "1.0.1a"
+version = "1.0.2a"
 
 plugins {
     kotlin("jvm") version "1.9.22"
@@ -17,11 +17,18 @@ repositories {
         name = "Sonatype Snapshots"
         url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots")
     }
+
+    maven {
+        name = "Kord"
+        url = uri("https://oss.sonatype.org/content/repositories/snapshots")
+    }
 }
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.10")
-    implementation("dev.kord", "kord-core", "0.9.0")
+    // TODO: remove snapshot version once 0.13 is released.
+    //  Remove Sonatype repo for Kord as well
+    implementation("dev.kord", "kord-core", "0.13.0-SNAPSHOT")
 
     implementation("app.cash.sqldelight", "sqlite-driver", "2.0.0-alpha05")
     implementation("app.cash.sqldelight", "primitive-adapters", "2.0.0-alpha05")

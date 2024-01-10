@@ -39,7 +39,7 @@ import dev.kord.core.entity.channel.TextChannel
 import dev.kord.core.entity.interaction.AutoCompleteInteraction
 import dev.kord.core.event.interaction.AutoCompleteInteractionCreateEvent
 import dev.kord.core.exception.EntityNotFoundException
-import dev.kord.rest.builder.message.create.embed
+import dev.kord.rest.builder.message.embed
 import io.ktor.client.request.forms.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
@@ -416,7 +416,7 @@ class UtilsExtension<T : Any> : Extension(), KordExKoinComponent, SchedulerEvent
                     }
 
                     respond {
-                        embeds.add(embed)
+                        embeds = mutableListOf(embed)
                     }
 
                 } else @OptIn(EphemeralOrPublicView::class) {
