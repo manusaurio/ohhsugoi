@@ -18,9 +18,6 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.ephemeralSlashCommand
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
-import com.kotlindiscord.kord.extensions.types.respond
-import com.kotlindiscord.kord.extensions.types.respondEphemeral
-import com.kotlindiscord.kord.extensions.types.respondingPaginator
 import com.kotlindiscord.kord.extensions.utils.suggestStringCollection
 import dev.kord.core.behavior.channel.createEmbed
 import dev.kord.core.behavior.interaction.suggestString
@@ -359,7 +356,7 @@ class MangaExtension: Extension(), KordExKoinComponent {
                 val (title, tagA, tagB, demographic) = criteria
 
                 if (criteria.all { it == null }) {
-                    respondEphemeral { content = "Debes especificar al menos un criterio." }
+                    respond { content = "Debes especificar al menos un criterio." }
                     return@action
                 }
 

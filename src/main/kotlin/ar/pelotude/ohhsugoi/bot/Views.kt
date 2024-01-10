@@ -5,6 +5,7 @@ import ar.pelotude.ohhsugoi.db.Manga
 import ar.pelotude.ohhsugoi.db.MangaChanges
 import ar.pelotude.ohhsugoi.db.MangaWithTags
 import ar.pelotude.ohhsugoi.util.makeTitle
+import com.kotlindiscord.kord.extensions.annotations.UnexpectedBehaviour
 import com.kotlindiscord.kord.extensions.checks.types.CheckContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.EphemeralSlashCommandContext
 import com.kotlindiscord.kord.extensions.commands.application.slash.SlashCommandContext
@@ -242,11 +243,13 @@ fun quickEmbed(title: String, description: String, color: Color) = EmbedBuilder(
 /** Opt-in for views in ephemeral or public contexts. */
 annotation class EphemeralOrPublicView
 
+@Deprecated("Gotta remove this later")
+@OptIn(UnexpectedBehaviour::class)
 @EphemeralOrPublicView
 suspend inline fun SlashCommandContext<*, *, *>.respondEphemeralOrPublicEmbed(embed: EmbedBuilder, public: Boolean) {
     when (this) {
-        is EphemeralInteractionContext -> if (public) respondPublic { embeds = mutableListOf(embed) } else respond { embeds = mutableListOf(embed) }
-        is PublicInteractionContext -> if (public) respond { embeds = mutableListOf(embed) } else respondEphemeral { embeds = mutableListOf(embed) }
+        is EphemeralInteractionContext -> if (public) respondOpposite { embeds = mutableListOf(embed) } else respond { embeds = mutableListOf(embed) }
+        is PublicInteractionContext -> if (public) respond { embeds = mutableListOf(embed) } else respondOpposite { embeds = mutableListOf(embed) }
     }
 }
 

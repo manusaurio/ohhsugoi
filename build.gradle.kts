@@ -1,7 +1,7 @@
 import kotlin.io.path.div
 import kotlin.io.path.readLines
 
-version = "1.0.2a"
+version = "1.0.3a"
 
 plugins {
     kotlin("jvm") version "1.9.22"
@@ -34,7 +34,7 @@ dependencies {
     implementation("app.cash.sqldelight", "primitive-adapters", "2.0.0-alpha05")
     implementation("org.xerial", "sqlite-jdbc", "3.44.1.0")
     implementation("org.slf4j", "slf4j-simple","2.0.7")
-    implementation("com.kotlindiscord.kord.extensions", "kord-extensions", "1.5.7-SNAPSHOT")
+    implementation("com.kotlindiscord.kord.extensions", "kord-extensions", "1.6.0-SNAPSHOT")
 
     implementation("com.twelvemonkeys.imageio", "imageio-jpeg", "3.9.4")
     implementation("com.twelvemonkeys.imageio", "imageio-webp", "3.9.4")

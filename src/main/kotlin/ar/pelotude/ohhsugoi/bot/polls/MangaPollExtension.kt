@@ -29,7 +29,6 @@ import com.kotlindiscord.kord.extensions.extensions.Extension
 import com.kotlindiscord.kord.extensions.extensions.event
 import com.kotlindiscord.kord.extensions.extensions.publicSlashCommand
 import com.kotlindiscord.kord.extensions.koin.KordExKoinComponent
-import com.kotlindiscord.kord.extensions.types.respond
 import dev.kord.common.entity.ButtonStyle
 import dev.kord.common.entity.Snowflake
 import dev.kord.common.exception.RequestException
@@ -139,7 +138,7 @@ class MangaPollsExtension<T : Any> : Extension(), KordExKoinComponent {
                         @OptIn(EphemeralOrPublicView::class)
                         if (mangas.size < 2) {
                             respondWithError("No se encontraron suficientes entradas para crear una votación.")
-                            return@action
+                            return@respond
                         }
 
                         // if it's already busy let's not stitch the covers
